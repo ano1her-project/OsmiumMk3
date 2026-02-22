@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Osmium.Core\Osmium.Core.csproj" />
+    <ProjectReference Include="..\Osmium.Estimate\Osmium.Estimate.csproj" />
   </ItemGroup>
 
   <ItemGroup>

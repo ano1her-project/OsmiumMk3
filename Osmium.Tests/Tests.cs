@@ -1,4 +1,5 @@
 ﻿using Osmium.Core;
+using Osmium.Estimate;
 using System.Runtime.Intrinsics;
 
 namespace Osmium.Tests
@@ -76,9 +77,7 @@ namespace Osmium.Tests
 
         [Fact]
         public void StartingPositionToFen()
-        {
-            Assert.Equal("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", Position.startingPosition.ToFEN());
-        }
+            => Assert.Equal("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", Position.startingPosition.ToFEN());
 
         [Fact]
         public void Raycast_RookSample()
@@ -161,9 +160,7 @@ namespace Osmium.Tests
 
         [Fact]
         public void GetAllLegalMoves_StartingPositionMoveCount()
-        {
-            Assert.Equal(20, Position.startingPosition.GetAllLegalMoves().Count);
-        }
+            => Assert.Equal(20, Position.startingPosition.GetAllLegalMoves().Count);
 
         [Fact]
         public void GetAllLegalMoves_AccountsForCheck()
@@ -187,6 +184,20 @@ namespace Osmium.Tests
         {
             var position = Position.FromFEN("rnbqkbnr/pppppppp/8/8/4P3/2NPBN2/PPPQBPPP/R3K2R w KQkq - 13 9");
             Assert.Equal(40, position.GetAllLegalMoves().Count);
+        }
+    }
+
+    public class EstimateTests
+    {
+        [Fact]
+        public void GetMaterialBalance_StartingPosition()
+            => Assert.Equal(0, Estimator.GetMaterialBalance(Position.startingPosition));
+
+        [Fact]
+        public void GetMaterialBalance_Sample()
+        {
+            var position = Position.FromFEN("1k6/6Q1/pp3R2/2p5/3r4/7P/8/6K1 w - - 0 1");
+            Assert.Equal(7, Estimator.GetMaterialBalance(position));
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Headers;
 using System.Net.NetworkInformation;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 
@@ -133,7 +134,7 @@ namespace Osmium.Core
     public class Position
     {
         public Piece?[,] board = new Piece?[8, 8];
-        bool whiteToMove;
+        public bool whiteToMove;
         CastlingAvailability castlingAvailability;
         Vector2? enPassantSquare;
         int halfmoveClock;
@@ -293,6 +294,7 @@ namespace Osmium.Core
             var piece = GetPiece(move.from) ?? throw new Exception();
             SetPiece(move.from, null);
             SetPiece(move.to, piece);
+            whiteToMove = !whiteToMove;
             enPassantSquare = null;
             // special flags
             int rank;
@@ -493,27 +495,37 @@ namespace Osmium.Core
                     var piece = GetPiece(rank, file);
                     if (piece is null || piece?.isWhite != whiteToMove)
                         continue;
-                    result.AddRange(piece?.type switch
-                    {
-                        Piece.Type.Pawn => GetPawnMoves(new(file, rank), whiteToMove),
-                        Piece.Type.Bishop => GetRiderMoves(new(file, rank), whiteToMove, Vector2.diagonalDirections),
-                        Piece.Type.Knight => GetLeaperMoves(new(file, rank), whiteToMove, Vector2.hippogonalDirections),
-                        Piece.Type.Rook => GetRiderMoves(new(file, rank), whiteToMove, Vector2.orthogonalDirections),
-                        Piece.Type.Queen => GetRiderMoves(new(file, rank), whiteToMove, Vector2.allDirections),
-                        Piece.Type.King => GetKingMoves(new(file, rank), whiteToMove),
-                        _ => throw new Exception()
-                    });
+                    result.AddRange(GetPieceMoves((Piece)piece, new(file, rank)));
                 }
             }
             // filter out every move that'd leave the king in check
-            for (int i = result.Count - 1; i >= 0; i--)
+            return FilterLegalMoves(result);
+        }
+
+        public List<Move> GetPieceMoves(Piece piece, Vector2 v)
+        {
+            return piece.type switch
+            {
+                Piece.Type.Pawn => GetPawnMoves(v, piece.isWhite),
+                Piece.Type.Bishop => GetRiderMoves(v, piece.isWhite, Vector2.diagonalDirections),
+                Piece.Type.Knight => GetLeaperMoves(v, piece.isWhite, Vector2.hippogonalDirections),
+                Piece.Type.Rook => GetRiderMoves(v, piece.isWhite, Vector2.orthogonalDirections),
+                Piece.Type.Queen => GetRiderMoves(v, piece.isWhite, Vector2.allDirections),
+                Piece.Type.King => GetKingMoves(v, piece.isWhite),
+                _ => throw new Exception()
+            };
+        }
+
+        public List<Move> FilterLegalMoves(List<Move> moves) // filter out moves that'd leave the king in check
+        {
+            List<Move> result = [];
+            for (int i = moves.Count - 1; i >= 0; i--)
             {
                 var positionAfterMove = this.DeepCopy();
-                positionAfterMove.MakeMove(result[i]);
-                if (positionAfterMove.IsKingInCheck(whiteToMove))
-                    result.RemoveAt(i);
+                positionAfterMove.MakeMove(moves[i]);
+                if (!positionAfterMove.IsKingInCheck(whiteToMove))
+                    result.Add(moves[i]);
             }
-            //
             return result;
         }
 
