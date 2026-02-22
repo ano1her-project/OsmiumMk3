@@ -1,7 +1,9 @@
 ﻿using System.ComponentModel.Design;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Headers;
 using System.Net.NetworkInformation;
+using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 
 namespace Osmium.Core
@@ -287,11 +289,48 @@ namespace Osmium.Core
 
         public void MakeMove(Move move)
         {
-            var piece = GetPiece(move.from);
-            if (piece is null)
-                throw new Exception();
+            // standard move
+            var piece = GetPiece(move.from) ?? throw new Exception();
             SetPiece(move.from, null);
             SetPiece(move.to, piece);
+            enPassantSquare = null;
+            // special flags
+            int rank;
+            switch (move.flag)
+            {
+                case Move.Flag.None:
+                    break;
+                case Move.Flag.CastlingKingside:
+                    rank = piece.isWhite ? 0 : 7;
+                    SetPiece(new(rank, 7), null);
+                    SetPiece(new(rank, 5), new(Piece.Type.Rook, piece.isWhite));
+                    break;
+                case Move.Flag.CastlingQueenside:
+                    rank = piece.isWhite ? 0 : 7;
+                    SetPiece(new(rank, 0), null);
+                    SetPiece(new(rank, 3), new(Piece.Type.Rook, piece.isWhite));
+                    break;
+                case Move.Flag.TwoSquarePawnPush:
+                    enPassantSquare = move.from + (piece.isWhite ? Vector2.up : Vector2.down);
+                    break;
+                case Move.Flag.EnPassant:
+                    SetPiece(move.to + (piece.isWhite ? Vector2.down : Vector2.up), null);
+                    break;
+                case Move.Flag.PromotionToQueen:
+                    SetPiece(move.to, new(Piece.Type.Queen, piece.isWhite));
+                    break;
+                case Move.Flag.PromotionToRook:
+                    SetPiece(move.to, new(Piece.Type.Rook, piece.isWhite));
+                    break;
+                case Move.Flag.PromotionToKnight:
+                    SetPiece(move.to, new(Piece.Type.Knight, piece.isWhite));
+                    break;
+                case Move.Flag.PromotionToBishop:
+                    SetPiece(move.to, new(Piece.Type.Bishop, piece.isWhite));
+                    break;
+                default:
+                    throw new Exception();
+            }
         }
 
         // move legality and move generation:
@@ -461,7 +500,7 @@ namespace Osmium.Core
                         Piece.Type.Knight => GetLeaperMoves(new(file, rank), whiteToMove, Vector2.hippogonalDirections),
                         Piece.Type.Rook => GetRiderMoves(new(file, rank), whiteToMove, Vector2.orthogonalDirections),
                         Piece.Type.Queen => GetRiderMoves(new(file, rank), whiteToMove, Vector2.allDirections),
-                        Piece.Type.King => GetLeaperMoves(new(file, rank), whiteToMove, Vector2.allDirections),
+                        Piece.Type.King => GetKingMoves(new(file, rank), whiteToMove),
                         _ => throw new Exception()
                     });
                 }
@@ -482,26 +521,41 @@ namespace Osmium.Core
         {
             List<Move> result = [];
             Vector2 forward = pawnColor ? Vector2.up : Vector2.down;
-            // push 1 square forward
+            // push
             if (GetPiece(pawn + forward) is null)
             {
-                result.Add(new(pawn, pawn + forward));
+                // push 1 square forward
+                if (pawn.rank == (pawnColor ? 6 : 1)) // if pawn is about to promote
+                {
+                    result.Add(new(pawn, pawn + forward, Move.Flag.PromotionToQueen));
+                    result.Add(new(pawn, pawn + forward, Move.Flag.PromotionToRook));
+                    result.Add(new(pawn, pawn + forward, Move.Flag.PromotionToKnight));
+                    result.Add(new(pawn, pawn + forward, Move.Flag.PromotionToBishop));
+                }
+                else
+                    result.Add(new(pawn, pawn + forward));
                 // push 2 squares forward
                 if (pawn.rank == (pawnColor ? 1 : 6) && GetPiece(pawn + forward + forward) is null)
                     result.Add(new(pawn, pawn + forward + forward));
             }
             // captures
-            if ((pawn + forward + Vector2.left).IsInBounds())
+            Vector2 leftCapture = pawn + forward + Vector2.left;
+            if (leftCapture.IsInBounds())
             {
-                var leftCapturePiece = GetPiece(pawn + forward + Vector2.left);
-                if ((leftCapturePiece is not null && leftCapturePiece?.isWhite != pawnColor) || (enPassantSquare is not null && enPassantSquare == pawn + forward + Vector2.left))
-                    result.Add(new(pawn, pawn + forward + Vector2.left));
+                var leftCapturePiece = GetPiece(leftCapture);
+                if (leftCapturePiece is not null && leftCapturePiece?.isWhite != pawnColor)
+                    result.Add(new(pawn, leftCapture));
+                else if (enPassantSquare is not null && enPassantSquare == leftCapture)
+                    result.Add(new(pawn, leftCapture, Move.Flag.EnPassant));
             }
-            if ((pawn + forward + Vector2.right).IsInBounds())
+            Vector2 rightCapture = pawn + forward + Vector2.right;
+            if (rightCapture.IsInBounds())
             {
-                var rightCapturePiece = GetPiece(pawn + forward + Vector2.right);
-                if ((rightCapturePiece is not null && rightCapturePiece?.isWhite != pawnColor) || (enPassantSquare is not null && enPassantSquare == pawn + forward + Vector2.right))
-                    result.Add(new(pawn, pawn + forward + Vector2.left));
+                var rightCapturePiece = GetPiece(rightCapture);
+                if (rightCapturePiece is not null && rightCapturePiece?.isWhite != pawnColor)
+                    result.Add(new(pawn, rightCapture));
+                else if (enPassantSquare is not null && enPassantSquare == rightCapture)
+                    result.Add(new(pawn, rightCapture, Move.Flag.EnPassant));
             }
             //
             return result;
@@ -528,16 +582,52 @@ namespace Osmium.Core
             }
             return result;
         }
+
+        List<Move> GetKingMoves(Vector2 king, bool kingColor) // GetLeaperMoves() + castling
+        {
+            // leap moves
+            List<Move> result = [];
+            result.AddRange(GetLeaperMoves(king, kingColor, Vector2.allDirections));
+            // castling kingside
+            if (kingColor && castlingAvailability.HasFlag(CastlingAvailability.WhiteKingside) && GetPiece(0, 5) is null && GetPiece(0, 6) is null)
+                result.Add(new(king, new(0, 6), Move.Flag.CastlingKingside));
+            else if (!kingColor && castlingAvailability.HasFlag(CastlingAvailability.BlackKingside) && GetPiece(7, 5) is null && GetPiece(7, 6) is null)
+                result.Add(new(king, new(7, 6), Move.Flag.CastlingKingside));
+            // castling queenside
+            if (kingColor && castlingAvailability.HasFlag(CastlingAvailability.WhiteQueenside) && GetPiece(0, 3) is null && GetPiece(0, 2) is null && GetPiece(0, 1) is null)
+                result.Add(new(king, new(0, 2), Move.Flag.CastlingQueenside));
+            else if (!kingColor && castlingAvailability.HasFlag(CastlingAvailability.BlackQueenside) && GetPiece(7, 3) is null && GetPiece(7, 2) is null && GetPiece(7, 1) is null)
+                result.Add(new(king, new(7, 2), Move.Flag.CastlingQueenside));
+            //
+            return result;
+        }
     }
 
     public readonly struct Move
     {
         public readonly Vector2 from, to;
+        public readonly Flag flag;
 
-        public Move(Vector2 p_from, Vector2 p_to)
+        public Move(Vector2 p_from, Vector2 p_to, Flag p_flag)
         {
             from = p_from;
             to = p_to;
+            flag = p_flag;
+        }
+
+        public Move(Vector2 p_from, Vector2 p_to) : this(p_from, p_to, Flag.None) { }
+
+        public enum Flag
+        {
+            None,
+            CastlingKingside,
+            CastlingQueenside,
+            TwoSquarePawnPush,
+            EnPassant,
+            PromotionToQueen,
+            PromotionToRook,
+            PromotionToKnight,
+            PromotionToBishop
         }
     }
 }

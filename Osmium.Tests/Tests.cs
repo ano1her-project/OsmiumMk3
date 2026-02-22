@@ -171,5 +171,22 @@ namespace Osmium.Tests
             var position = Position.FromFEN("r1bqkbnr/pppppppp/2n5/7Q/4P3/8/PPPP1PPP/RNB1KBNR b KQkq - 2 2");
             Assert.Equal(19, position.GetAllLegalMoves().Count);
         }
+
+        [Fact]
+        public void GetAllLegalMoves_Promotions()
+        {
+            var position = Position.FromFEN("8/1k5P/8/7K/8/8/8/8 w - - 0 1");
+            Assert.Equal(9, position.GetAllLegalMoves().Count);
+            //
+            position = Position.FromFEN("8/8/8/8/8/k7/1p2K3/8 b - - 0 1");
+            Assert.Equal(8, position.GetAllLegalMoves().Count);
+        }
+
+        [Fact]
+        public void GetAllLegalMoves_Castling()
+        {
+            var position = Position.FromFEN("rnbqkbnr/pppppppp/8/8/4P3/2NPBN2/PPPQBPPP/R3K2R w KQkq - 13 9");
+            Assert.Equal(40, position.GetAllLegalMoves().Count);
+        }
     }
 }
