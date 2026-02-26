@@ -16,7 +16,9 @@ namespace Osmium.Engine
             Console.WriteLine(new string(' ', moves.Count) + moves.Count.ToString()); // print progress bar
             foreach (var move in moves)
             {
-                int eval = Evaluate(position.AfterMove(move), depth - 1);
+                position.MakeMove(move, out var undoInfo);
+                int eval = Evaluate(position, depth - 1);
+                position.UnmakeMove(move, undoInfo);
                 bool isBetterThanPrevious = position.whiteToMove ? (eval > bestEval) : (eval < bestEval);
                 Console.Write("▒"); // print progress bar
                 if (!isBetterThanPrevious)
@@ -41,7 +43,9 @@ namespace Osmium.Engine
             int bestEval = position.whiteToMove ? int.MinValue : int.MaxValue;
             foreach (var move in moves)
             {
-                int eval = Evaluate(position.AfterMove(move), depth - 1);
+                position.MakeMove(move, out var undoInfo);
+                int eval = Evaluate(position, depth - 1);
+                position.UnmakeMove(move, undoInfo);
                 bool isBetterThanPrevious = position.whiteToMove ? (eval > bestEval) : (eval < bestEval);
                 if (isBetterThanPrevious)
                     bestEval = eval;

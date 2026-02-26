@@ -93,7 +93,7 @@ namespace Osmium.Interface
                     var sw = Stopwatch.StartNew();
                     var bestMove = Minimax.FindBestMove(position, depth, out int eval);
                     var time = sw.Elapsed;
-                    position.MakeMove(bestMove);
+                    position.MakeMove(bestMove, out _);
                     Console.WriteLine($"Found best move {bestMove} in {time} and played it. Eval = {eval}.");
                     PrettyPrinter.Print(position);
                     break;
@@ -127,7 +127,7 @@ namespace Osmium.Interface
                         Console.WriteLine("invalid destination for this piece. aborting move.");
                         break;
                     }
-                    position.MakeMove(moves[moveIndex]);
+                    position.MakeMove(moves[moveIndex], out _);
                     PrettyPrinter.Print(position);
                     break;
             }

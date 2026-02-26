@@ -602,8 +602,10 @@ namespace Osmium.Core
             List<Move> result = [];
             for (int i = moves.Count - 1; i >= 0; i--)
             {
-                if (!this.AfterMove(moves[i]).IsKingInCheck(whiteToMove))
+                MakeMove(moves[i], out var undoInfo);
+                if (!IsKingInCheck(!whiteToMove)) // !whiteToMove cuz it has flipped
                     result.Add(moves[i]);
+                UnmakeMove(moves[i], undoInfo);
             }
             return result;
         }
