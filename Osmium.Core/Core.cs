@@ -288,14 +288,35 @@ namespace Osmium.Core
         public void SetPiece(Vector2 v, Piece? piece)
             => SetPiece(v.rank, v.file, piece);
 
-        public void MakeMove(Move move)
+        public void MakeMove(Move move, out UndoInfo undoInfo)
         {
+            // record undo info before doing anything else
+            Piece? captured;
+            if (move.flag == Move.Flag.EnPassant)
+                captured = GetPiece(move.from.rank, move.to.file);
+            else
+                captured = GetPiece(move.to);
+            Vector2? previousEnPassantSquare = enPassantSquare;
+            CastlingAvailability previousCastlingAvailability = castlingAvailability;
             // standard move
             var piece = GetPiece(move.from) ?? throw new Exception();
             SetPiece(move.from, null);
             SetPiece(move.to, piece);
             whiteToMove = !whiteToMove;
             enPassantSquare = null;
+            // set castling availability
+            if (move.from == new Vector2(7, 0) || move.to == new Vector2(7, 0))
+                castlingAvailability &= ~CastlingAvailability.WhiteKingside;
+            if (move.from == new Vector2(0, 0) || move.to == new Vector2(0, 0))
+                castlingAvailability &= ~CastlingAvailability.WhiteQueenside;
+            if (move.from == new Vector2(7, 7) || move.to == new Vector2(7, 7))
+                castlingAvailability &= ~CastlingAvailability.BlackKingside;
+            if (move.from == new Vector2(0, 7) || move.to == new Vector2(0, 7))
+                castlingAvailability &= ~CastlingAvailability.BlackQueenside;
+            if (move.from == new Vector2(4, 0))
+                castlingAvailability &= ~(CastlingAvailability.WhiteKingside | CastlingAvailability.WhiteQueenside);
+            if (move.from == new Vector2(4, 7))
+                castlingAvailability &= ~(CastlingAvailability.BlackKingside | CastlingAvailability.BlackQueenside);
             // special flags
             int rank;
             switch (move.flag)
@@ -306,11 +327,15 @@ namespace Osmium.Core
                     rank = piece.isWhite ? 0 : 7;
                     SetPiece(new(rank, 7), null);
                     SetPiece(new(rank, 5), new(Piece.Type.Rook, piece.isWhite));
+                    castlingAvailability &= piece.isWhite ? ~CastlingAvailability.WhiteKingside : ~CastlingAvailability.BlackKingside;
+                    castlingAvailability &= piece.isWhite ? ~CastlingAvailability.WhiteQueenside : ~CastlingAvailability.BlackQueenside;
                     break;
                 case Move.Flag.CastlingQueenside:
                     rank = piece.isWhite ? 0 : 7;
                     SetPiece(new(rank, 0), null);
                     SetPiece(new(rank, 3), new(Piece.Type.Rook, piece.isWhite));
+                    castlingAvailability &= piece.isWhite ? ~CastlingAvailability.WhiteKingside : ~CastlingAvailability.BlackKingside;
+                    castlingAvailability &= piece.isWhite ? ~CastlingAvailability.WhiteQueenside : ~CastlingAvailability.BlackQueenside;
                     break;
                 case Move.Flag.TwoSquarePawnPush:
                     enPassantSquare = move.from + (piece.isWhite ? Vector2.up : Vector2.down);
@@ -333,12 +358,61 @@ namespace Osmium.Core
                 default:
                     throw new Exception();
             }
+            undoInfo = new(captured, previousEnPassantSquare, previousCastlingAvailability);
         }
 
-        public Position AfterMove(Move move)
+        public void UnmakeMove(Move move, UndoInfo undoInfo)
+        {
+            var piece = GetPiece(move.to) ?? throw new Exception();
+            whiteToMove = !whiteToMove;
+            enPassantSquare = undoInfo.previousEnPassantSquare;
+            castlingAvailability = undoInfo.previousCastlingAvailability;
+            int rank;
+            switch (move.flag)
+            {
+                case Move.Flag.None:
+                    SetPiece(move.from, piece);
+                    SetPiece(move.to, undoInfo.captured);
+                    break;
+                case Move.Flag.CastlingKingside:
+                    rank = piece.isWhite ? 0 : 7;
+                    SetPiece(move.from, piece);
+                    SetPiece(move.to, null);
+                    SetPiece(new(rank, 5), null);
+                    SetPiece(new(rank, 7), new(Piece.Type.Rook, piece.isWhite));
+                    break;
+                case Move.Flag.CastlingQueenside:
+                    rank = piece.isWhite ? 0 : 7;
+                    SetPiece(move.from, piece);
+                    SetPiece(move.to, null);
+                    SetPiece(new(rank, 3), null);
+                    SetPiece(new(rank, 0), new(Piece.Type.Rook, piece.isWhite));
+                    break;
+                case Move.Flag.TwoSquarePawnPush:
+                    SetPiece(move.from, piece);
+                    SetPiece(move.to, null);
+                    break;
+                case Move.Flag.EnPassant:
+                    SetPiece(move.from, piece);
+                    SetPiece(move.to, null);
+                    SetPiece(move.from.rank, move.to.rank, undoInfo.captured);
+                    break;
+                case Move.Flag.PromotionToQueen:
+                case Move.Flag.PromotionToRook:
+                case Move.Flag.PromotionToKnight:
+                case Move.Flag.PromotionToBishop:
+                    SetPiece(move.from, new(Piece.Type.Pawn, piece.isWhite));
+                    SetPiece(move.to, null);
+                    break;
+                default:
+                    throw new Exception();
+            }
+        }
+
+        public Position AfterMove(Move move) // not performant!! use MakeMove() and UnmakeMove() instead!!
         {
             Position result = this.DeepCopy();
-            result.MakeMove(move);
+            result.MakeMove(move, out _);
             return result;
         }
 
@@ -649,5 +723,19 @@ namespace Osmium.Core
 
         public override string ToString()
             => $"{from}→{to}" + (flag != Flag.None ? "⚑" : "");
+    }
+
+    public readonly struct UndoInfo
+    {
+        public readonly Piece? captured;
+        public readonly Vector2? previousEnPassantSquare;
+        public readonly Position.CastlingAvailability previousCastlingAvailability;
+
+        public UndoInfo(Piece? p_captured, Vector2? p_previousEnPassantSquare, Position.CastlingAvailability p_previousCastlingAvailability)
+        {
+            captured = p_captured;
+            previousEnPassantSquare = p_previousEnPassantSquare;
+            previousCastlingAvailability = p_previousCastlingAvailability;            
+        }
     }
 }
