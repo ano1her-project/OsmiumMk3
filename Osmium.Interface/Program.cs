@@ -1,5 +1,6 @@
 ﻿using Osmium.Core;
-using Osmium.Estimate;
+using Osmium.Engine;
+using System.Diagnostics;
 
 namespace Osmium.Interface
 {
@@ -8,7 +9,7 @@ namespace Osmium.Interface
         static Position position = Position.startingPosition;
         static bool enginePlayingWhite, enginePlayingBlack;
         static bool engineMovesAutomatically;
-        static int depth;
+        static int depth = 4;
 
         static void Main()
         {
@@ -28,9 +29,10 @@ namespace Osmium.Interface
                     Console.WriteLine("set_position (fen)                    - Sets the current position to the provided FEN.");
                     Console.WriteLine("set_white_player (engine | player)    - Sets who controls the white pieces.");
                     Console.WriteLine("set_black_player (engine | player)    - Sets who controls the black pieces.");
-                    Console.WriteLine("set_engine_automatic_moves (yes | no) - Sets whether the engine waits for the let_engine_move command.");
+                    Console.WriteLine("set_engine_automatic_moves (yes | no) - Sets whether the engine waits for the let_engine_make_move command.");
                     Console.WriteLine("set_depth (depth)                     - Sets the engine search depth.");
                     Console.WriteLine("estimate                              - Calculates the static evaluation of the current position.");
+                    Console.WriteLine("let_engine_make_move                  - Has the engine choose and play the best move.");
                     Console.WriteLine("(square in algebraic format)          - Starts a move.");
 
                     break;
@@ -69,11 +71,9 @@ namespace Osmium.Interface
                 case "set_engine_automatic_moves":
                     switch (subs[1])
                     {
-                        case "true":
                         case "yes":
                             engineMovesAutomatically = true;
                             break;
-                        case "false":
                         case "no":
                             engineMovesAutomatically = false;
                             break;
@@ -87,6 +87,15 @@ namespace Osmium.Interface
                     break;
                 case "estimate":
                     Console.WriteLine($"Estimated evaluation: {Estimator.GetEstimate(position)}.");
+                    break;
+                case "let_engine_make_move":
+                case "lemm":
+                    var sw = Stopwatch.StartNew();
+                    var bestMove = Minimax.FindBestMove(position, depth);
+                    var time = sw.Elapsed;
+                    position.MakeMove(bestMove);
+                    Console.WriteLine($"Found best move in {time} and played it.");
+                    PrettyPrinter.Print(position);
                     break;
                 default: // a move:
                     if (subs.Length > 1)

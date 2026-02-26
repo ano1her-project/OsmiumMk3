@@ -335,6 +335,13 @@ namespace Osmium.Core
             }
         }
 
+        public Position AfterMove(Move move)
+        {
+            Position result = this.DeepCopy();
+            result.MakeMove(move);
+            return result;
+        }
+
         // move legality and move generation:
 
         public Piece? Raycast(Vector2 origin, Vector2 direction)
@@ -521,9 +528,7 @@ namespace Osmium.Core
             List<Move> result = [];
             for (int i = moves.Count - 1; i >= 0; i--)
             {
-                var positionAfterMove = this.DeepCopy();
-                positionAfterMove.MakeMove(moves[i]);
-                if (!positionAfterMove.IsKingInCheck(whiteToMove))
+                if (!this.AfterMove(moves[i]).IsKingInCheck(whiteToMove))
                     result.Add(moves[i]);
             }
             return result;
@@ -641,5 +646,8 @@ namespace Osmium.Core
             PromotionToKnight,
             PromotionToBishop
         }
+
+        public override string ToString()
+            => $"{from}→{to}" + (flag != Flag.None ? "⚑" : "");
     }
 }

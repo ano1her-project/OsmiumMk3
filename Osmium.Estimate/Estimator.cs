@@ -1,15 +1,15 @@
 ﻿using Osmium.Core;
 
-namespace Osmium.Estimate
+namespace Osmium.Engine
 {
     public class Estimator
     {
-        public static int GetEstimate(Position position)
+        public static int GetEstimate(Position position) // absolute value, positive for white advantage, negative for black advantage
         {
             return GetMaterialBalance(position);
         }
 
-        static int[] materialValue = [1, 3, 3, 5, 9, 0];
+        static readonly int[] materialValue = [1, 3, 3, 5, 9, 0];
 
         public static int GetMaterialBalance(Position position)
         {
