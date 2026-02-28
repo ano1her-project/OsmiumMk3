@@ -725,7 +725,7 @@ namespace Osmium.Core
         }
 
         public override string ToString()
-            => $"{from}→{to}" + (flag != Flag.None ? "⚑" : "");
+            => $"{from}{to}" + (flag != Flag.None ? "*" : "");
     }
 
     public readonly struct UndoInfo
