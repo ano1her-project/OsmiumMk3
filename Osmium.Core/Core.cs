@@ -402,7 +402,7 @@ namespace Osmium.Core
                 case Move.Flag.PromotionToKnight:
                 case Move.Flag.PromotionToBishop:
                     SetPiece(move.from, new(Piece.Type.Pawn, piece.isWhite));
-                    SetPiece(move.to, null);
+                    SetPiece(move.to, undoInfo.captured);
                     break;
                 default:
                     throw new Exception();
@@ -614,22 +614,15 @@ namespace Osmium.Core
         {
             List<Move> result = [];
             Vector2 forward = pawnColor ? Vector2.up : Vector2.down;
+            bool isAboutToPromote = pawn.rank == (pawnColor ? 6 : 1);
             // push
             if (GetPiece(pawn + forward) is null)
             {
                 // push 1 square forward
-                if (pawn.rank == (pawnColor ? 6 : 1)) // if pawn is about to promote
-                {
-                    result.Add(new(pawn, pawn + forward, Move.Flag.PromotionToQueen));
-                    result.Add(new(pawn, pawn + forward, Move.Flag.PromotionToRook));
-                    result.Add(new(pawn, pawn + forward, Move.Flag.PromotionToKnight));
-                    result.Add(new(pawn, pawn + forward, Move.Flag.PromotionToBishop));
-                }
-                else
-                    result.Add(new(pawn, pawn + forward));
+                    result.AddRange(MoveWithOrWithoutPromotions(pawn, pawn + forward, isAboutToPromote));
                 // push 2 squares forward
                 if (pawn.rank == (pawnColor ? 1 : 6) && GetPiece(pawn + forward + forward) is null)
-                    result.Add(new(pawn, pawn + forward + forward));
+                    result.Add(new(pawn, pawn + forward + forward)); // cannot land on the last rank (and promote)
             }
             // captures
             Vector2 leftCapture = pawn + forward + Vector2.left;
@@ -637,22 +630,30 @@ namespace Osmium.Core
             {
                 var leftCapturePiece = GetPiece(leftCapture);
                 if (leftCapturePiece is not null && leftCapturePiece?.isWhite != pawnColor)
-                    result.Add(new(pawn, leftCapture));
+                    result.AddRange(MoveWithOrWithoutPromotions(pawn, leftCapture, isAboutToPromote));
                 else if (enPassantSquare is not null && enPassantSquare == leftCapture)
-                    result.Add(new(pawn, leftCapture, Move.Flag.EnPassant));
+                    result.Add(new(pawn, leftCapture, Move.Flag.EnPassant)); // cannot capture en passant and land on the last rank
             }
             Vector2 rightCapture = pawn + forward + Vector2.right;
             if (rightCapture.IsInBounds())
             {
                 var rightCapturePiece = GetPiece(rightCapture);
                 if (rightCapturePiece is not null && rightCapturePiece?.isWhite != pawnColor)
-                    result.Add(new(pawn, rightCapture));
+                    result.AddRange(MoveWithOrWithoutPromotions(pawn, rightCapture, isAboutToPromote));
                 else if (enPassantSquare is not null && enPassantSquare == rightCapture)
-                    result.Add(new(pawn, rightCapture, Move.Flag.EnPassant));
+                    result.Add(new(pawn, rightCapture, Move.Flag.EnPassant)); // cannot capture en passant and land on the last rank
             }
             //
             return result;
         }
+
+        Move[] MoveWithOrWithoutPromotions(Vector2 pawn, Vector2 destination, bool isAboutToPromote)
+            => isAboutToPromote ? [
+                new(pawn, destination, Move.Flag.PromotionToQueen), 
+                new(pawn, destination, Move.Flag.PromotionToRook), 
+                new(pawn, destination, Move.Flag.PromotionToKnight), 
+                new(pawn, destination, Move.Flag.PromotionToBishop)] 
+            : [new(pawn, destination)];
 
         List<Move> GetRiderMoves(Vector2 rider, bool riderColor, Vector2[] directions) // generalized method for rooks, bishops and queens
         {

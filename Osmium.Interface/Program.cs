@@ -26,7 +26,9 @@ namespace Osmium.Interface
             {
                 case "help":
                     Console.WriteLine("help                                  - Lists all commands.");
+                    Console.WriteLine("abrreviate (name of command)          - Lists abbreviations for a command.");
                     Console.WriteLine("set_position (fen)                    - Sets the current position to the provided FEN.");
+                    Console.WriteLine("set_position (starting | kiwipete)    - Sets the current position to a special pick.");
                     Console.WriteLine("set_white_player (engine | player)    - Sets who controls the white pieces.");
                     Console.WriteLine("set_black_player (engine | player)    - Sets who controls the black pieces.");
                     Console.WriteLine("set_engine_automatic_moves (yes | no) - Sets whether the engine waits for the let_engine_make_move command.");
@@ -36,15 +38,27 @@ namespace Osmium.Interface
                     Console.WriteLine("(square in algebraic format)          - Starts a move.");
 
                     break;
+                case "abbreviate":
+                    break;
                 case "set_position":
-                    if (subs.Length != 7)
+                    if (subs[1] == "starting" || subs[1] == "start")
                     {
-                        Console.WriteLine("invalid argument");
-                        break;
+                        position = Position.startingPosition;
+                        PrettyPrinter.Print(position);
                     }
-                    // we join the split subs back together,, probably not ideal but whatever
-                    position = Position.FromFEN($"{subs[1]} {subs[2]} {subs[3]} {subs[4]} {subs[5]} {subs[6]}");
-                    PrettyPrinter.Print(position);
+                    else if (subs[1] == "kiwipete")
+                    { 
+                        position = Position.FromFEN("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 99 99");
+                        PrettyPrinter.Print(position);
+                    }
+                    else if (subs.Length != 7)
+                        Console.WriteLine("invalid argument");
+                    else
+                    { 
+                        // we join the split subs back together,, probably not ideal but whatever
+                        position = Position.FromFEN($"{subs[1]} {subs[2]} {subs[3]} {subs[4]} {subs[5]} {subs[6]}");
+                        PrettyPrinter.Print(position);
+                    }
                     break;
                 case "set_white_player":
                 case "white":
