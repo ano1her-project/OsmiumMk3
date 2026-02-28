@@ -185,6 +185,34 @@ namespace Osmium.Tests
             var position = Position.FromFEN("rnbqkbnr/pppppppp/8/8/4P3/2NPBN2/PPPQBPPP/R3K2R w KQkq - 13 9");
             Assert.Equal(40, position.GetAllLegalMoves().Count);
         }
+
+        [Fact]
+        public void MakeAndUnmake_StartingPosition()
+        {
+            var position = Position.startingPosition.DeepCopy();
+            var moves = position.GetAllLegalMoves();
+            Assert.Equal(20, moves.Count);
+            foreach (var move in moves)
+            {
+                position.MakeMove(move, out var undoInfo);
+                position.UnmakeMove(move, undoInfo);
+                Assert.Equal("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", position.ToFEN());
+            }
+        }
+
+        [Fact]
+        public void MakeAndUnmake_Kiwipete()
+        {
+            var position = Position.FromFEN("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 99 99");
+            var moves = position.GetAllLegalMoves();
+            Assert.Equal(48, moves.Count);
+            foreach (var move in moves)
+            {
+                position.MakeMove(move, out var undoInfo);
+                position.UnmakeMove(move, undoInfo);
+                Assert.Equal("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 99 99", position.ToFEN());
+            }
+        }
     }
 
     public class EstimateTests
@@ -200,7 +228,7 @@ namespace Osmium.Tests
             Assert.Equal(7, Estimator.GetMaterialBalance(position));
         }
     }
-    
+
     public class MinimaxTests
     {
         [Fact]
@@ -229,6 +257,16 @@ namespace Osmium.Tests
             position = Position.FromFEN("1k1b1r2/ppp5/8/8/8/6P1/3R1P1P/3R2K1 w - - 0 1");
             bestMove = new(new(3, 1), new(3, 7));
             Assert.Equal(bestMove, Minimax.FindBestMove(position, 3, out _));
+        }
+
+        [Fact]
+        public void LeafNodeCount_StartingPosition() // perft
+        {
+            Assert.Equal(20, Minimax.CountLeafNodesAtDepth(Position.startingPosition, 1));
+            Assert.Equal(400, Minimax.CountLeafNodesAtDepth(Position.startingPosition, 2));
+            Assert.Equal(8_902, Minimax.CountLeafNodesAtDepth(Position.startingPosition, 3));
+            Assert.Equal(197_281, Minimax.CountLeafNodesAtDepth(Position.startingPosition, 4));
+            Assert.Equal(4_865_609, Minimax.CountLeafNodesAtDepth(Position.startingPosition, 5));
         }
     }
 }

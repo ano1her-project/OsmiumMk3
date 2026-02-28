@@ -395,7 +395,7 @@ namespace Osmium.Core
                 case Move.Flag.EnPassant:
                     SetPiece(move.from, piece);
                     SetPiece(move.to, null);
-                    SetPiece(move.from.rank, move.to.rank, undoInfo.captured);
+                    SetPiece(move.from.rank, move.to.file, undoInfo.captured);
                     break;
                 case Move.Flag.PromotionToQueen:
                 case Move.Flag.PromotionToRook:
@@ -622,7 +622,7 @@ namespace Osmium.Core
                     result.AddRange(MoveWithOrWithoutPromotions(pawn, pawn + forward, isAboutToPromote));
                 // push 2 squares forward
                 if (pawn.rank == (pawnColor ? 1 : 6) && GetPiece(pawn + forward + forward) is null)
-                    result.Add(new(pawn, pawn + forward + forward)); // cannot land on the last rank (and promote)
+                    result.Add(new(pawn, pawn + forward + forward, Move.Flag.TwoSquarePawnPush)); // cannot land on the last rank (and promote)
             }
             // captures
             Vector2 leftCapture = pawn + forward + Vector2.left;
