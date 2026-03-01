@@ -621,7 +621,7 @@ namespace Osmium.Core
             }
             // captures
             Vector2 leftCapture = oneStepForward + Vector2.left;
-            if (leftCapture.file > 0) // is in bounds
+            if (leftCapture.file >= 0) // is in bounds
             {
                 var leftCapturePiece = GetPiece(leftCapture);
                 if (leftCapturePiece is not null && leftCapturePiece?.isWhite != pawnColor)
@@ -630,7 +630,7 @@ namespace Osmium.Core
                     result.Add(new(pawn, leftCapture, Move.Flag.EnPassant)); // cannot capture en passant and land on the last rank
             }
             Vector2 rightCapture = oneStepForward + Vector2.right;
-            if (rightCapture.file <= 8) // is in bounds
+            if (rightCapture.file < 8) // is in bounds
             {
                 var rightCapturePiece = GetPiece(rightCapture);
                 if (rightCapturePiece is not null && rightCapturePiece?.isWhite != pawnColor)
