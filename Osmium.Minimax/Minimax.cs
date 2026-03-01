@@ -1,4 +1,5 @@
 ﻿using Osmium.Core;
+using System.Linq;
 
 namespace Osmium.Engine
 {
@@ -7,13 +8,30 @@ namespace Osmium.Engine
         static readonly int checkmateEval = 50_000;
         static readonly int stalemateEval = 0;
 
-        public static Move FindBestMove(Position position, int depth, int bestEvalWhiteCanGuarantee, int bestEvalBlackCanGuarantee, out int bestEval) // very similar to Evaluate() but also returns the move
+        public static Move FindBestMove(Position position, int depth, int evalSortDepth, int bestEvalWhiteCanGuarantee, int bestEvalBlackCanGuarantee, out int bestEval) // very similar to Evaluate() but also returns the move
         {
-            var moves = position.GetAllLegalMoves();
-            Console.WriteLine($"Found {moves.Count} move(s)..");
+            var moves = position.GetAllLegalMoves().ToArray();
+            Console.WriteLine($"Found {moves.Length} move(s)..");            
+            // preliminary pass at lower depth to sort the moves by eval
+            if (evalSortDepth < depth && evalSortDepth > 0)
+            {
+                Console.WriteLine($"Sorting moves by eval at depth {evalSortDepth}..");
+                int[] evals = new int[moves.Length];
+                for (int i = 0; i < moves.Length; i++)
+                {
+                    position.MakeMove(moves[i], out var undoInfo);
+                    evals[i] = Evaluate(position, evalSortDepth - 1, bestEvalWhiteCanGuarantee, bestEvalBlackCanGuarantee);
+                    position.UnmakeMove(moves[i], undoInfo);
+                }
+                Array.Sort(evals, moves); // lowest to highest
+                if (position.whiteToMove)
+                    Array.Reverse(moves); // highest to lowest
+            }
+            //
+            Console.WriteLine($"Evaluating moves at depth {depth}..");
             bestEval = position.whiteToMove ? int.MinValue : int.MaxValue;
             Move bestMove = moves[0];
-            Console.WriteLine(new string(' ', moves.Count) + moves.Count.ToString()); // print progress bar
+            Console.WriteLine(new string(' ', moves.Length) + moves.Length.ToString()); // print progress bar
             foreach (var move in moves)
             {
                 position.MakeMove(move, out var undoInfo);
@@ -44,8 +62,8 @@ namespace Osmium.Engine
             return bestMove;
         }
 
-        public static Move FindBestMove(Position position, int depth, out int bestEval)
-            => FindBestMove(position, depth, int.MinValue, int.MaxValue, out bestEval);
+        public static Move FindBestMove(Position position, int depth, int evalSortDepth, out int bestEval)
+            => FindBestMove(position, depth, evalSortDepth, int.MinValue, int.MaxValue, out bestEval);
 
         public static int Evaluate(Position position, int depth, int bestEvalWhiteCanGuarantee, int bestEvalBlackCanGuarantee)
         {
