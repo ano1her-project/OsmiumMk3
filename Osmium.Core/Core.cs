@@ -446,85 +446,62 @@ namespace Osmium.Core
             }
         }
 
-        public bool IsPieceCheckingKing(Vector2 attacker, Vector2 king)
-        {
-            // we assume that the provided king location is correct
-            var piece = GetPiece(attacker.rank, attacker.file);
-            if (piece is null)
-                return false;
-            return piece?.type switch
-            {
-                // son 😭😭😭 im crine 😭😭😭 this is NOT good code 😭😭😭
-                Piece.Type.Pawn => IsPawnCheckingKing(attacker, (bool)piece?.isWhite, king),
-                Piece.Type.Bishop => IsBishopCheckingKing(attacker, king),
-                Piece.Type.Knight => IsKnightCheckingKing(attacker, king),
-                Piece.Type.Rook => IsRookCheckingKing(attacker, king),
-                Piece.Type.Queen => IsRookCheckingKing(attacker, king) || IsBishopCheckingKing(attacker, king),
-                Piece.Type.King => IsKingCheckingKing(attacker, king),
-                _ => throw new Exception()
-            };
-        }
-
-        bool IsPawnCheckingKing(Vector2 pawn, bool pawnColor, Vector2 king)
-        {
-            Vector2 displacement = king - pawn;
-            Vector2 forward = pawnColor ? Vector2.up : Vector2.down;
-            return displacement == forward + Vector2.left || displacement == forward + Vector2.right;
-        }
-
-        bool IsBishopCheckingKing(Vector2 bishop, Vector2 king)
-        {
-            // again, we assume that the provided king location is correct
-            Vector2 displacement = king - bishop;
-            if (Math.Abs(displacement.rank) != Math.Abs(displacement.file))
-                return false;
-            Vector2 direction = new(displacement.file > 0 ? 1 : -1, displacement.rank > 0 ? 1 : -1);
-            return RaycastForHitpoint(bishop, direction) == king;                
-        }
-
-        bool IsKnightCheckingKing(Vector2 knight, Vector2 king)
-        {
-            // again, we assume that the provided king location is correct
-            Vector2 displacement = king - knight;
-            if (Math.Abs(displacement.rank) == 2 && Math.Abs(displacement.file) == 1)
-                return true;
-            else if (Math.Abs(displacement.rank) == 1 && Math.Abs(displacement.file) == 2)
-                return true;
-            else return false;
-        }
-
-        bool IsRookCheckingKing(Vector2 rook, Vector2 king)
-        {
-            // again, we assume that the provided king location is correct
-            if (rook.rank == king.rank)
-                return RaycastForHitpoint(rook, (rook.file > king.file) ? Vector2.left : Vector2.right) == king;
-            else if (rook.file == king.file)
-                return RaycastForHitpoint(rook, (rook.rank > king.rank) ? Vector2.down : Vector2.up) == king;
-            else return false;
-        }
-
-        bool IsKingCheckingKing(Vector2 attacker, Vector2 king)
-        {
-            // son 😭😭😭
-            Vector2 displacement = king - attacker;
-            return Math.Abs(displacement.rank) <= 1 && Math.Abs(displacement.file) <= 1;
-        }
-
         public bool IsKingInCheck(bool kingColor)
         {
             // find king
             var king = FindPiece(new(Piece.Type.King, kingColor)) ?? throw new Exception();
-            //
-            for (int rank = 0; rank < 8; rank++)
+            // check for attacking pawns
+            int forward = kingColor ? 1 : -1;
+            for (int fileDelta = -1; fileDelta <= 1; fileDelta += 2 /* = 1 */)
             {
-                for (int file = 0; file < 8; file++)
-                {
-                    Piece? piece = GetPiece(rank, file);
-                    if (piece is null || (bool)piece?.isWhite == kingColor)
-                        continue; // nothing worth examining rn on this square
-                    if (IsPieceCheckingKing(new(file, rank), king))
-                        return true;
-                }
+                int rank = king.rank + forward;
+                if (rank >= 8 || rank < 0)
+                    continue;
+                int file = king.file + fileDelta;
+                if (file >= 8 || file < 0)
+                    continue;
+                var piece = GetPiece(rank, file);
+                if (piece is not null && piece?.isWhite != kingColor && piece?.type == Piece.Type.Pawn)
+                    return true;
+            }
+            // check for attacking knights
+            for (int i = 0; i < 8; i++)
+            {
+                var square = king + Vector2.hippogonalDirections[i];
+                if (!square.IsInBounds())
+                    continue;
+                var piece = GetPiece(square);
+                if (piece is not null && piece?.type == Piece.Type.Knight && piece?.isWhite != kingColor)
+                    return true;
+            }
+            // check for attacking kings
+            for (int i = 0; i < 8; i++)
+            {
+                var square = king + Vector2.allDirections[i];
+                if (!square.IsInBounds())
+                    continue;
+                var piece = GetPiece(square);
+                if (piece is not null && (piece?.type == Piece.Type.King || piece?.type == Piece.Type.Queen) && piece?.isWhite != kingColor)
+                    return true;
+            }
+            // most expensive for last..
+            // check for attacking rooks, queens
+            for (int i = 0; i < 4; i++)
+            {
+                var hit = Raycast(king, Vector2.orthogonalDirections[i]);
+                if (hit is null || hit?.isWhite == kingColor)
+                    continue;
+                if (hit?.type == Piece.Type.Rook || hit?.type == Piece.Type.Queen)
+                    return true;
+            }
+            // check for attacking bishops, queens
+            for (int i = 0; i < 4; i++)
+            {
+                var hit = Raycast(king, Vector2.diagonalDirections[i]);
+                if (hit is null || hit?.isWhite == kingColor)
+                    continue;
+                if (hit?.type == Piece.Type.Bishop || hit?.type == Piece.Type.Queen)
+                    return true;
             }
             return false;
         }
