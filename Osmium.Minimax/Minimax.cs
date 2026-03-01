@@ -1,14 +1,19 @@
 ﻿using Osmium.Core;
-using System.Linq;
 
 namespace Osmium.Engine
 {
     public class Minimax
     {
+        public enum DebugPrintMode
+        {
+            ProgressBar,
+            Elaborate
+        }
+
         static readonly int checkmateEval = 50_000;
         static readonly int stalemateEval = 0;
 
-        public static Move FindBestMove(Position position, int depth, int evalSortDepth, int bestEvalWhiteCanGuarantee, int bestEvalBlackCanGuarantee, out int bestEval) // very similar to Evaluate() but also returns the move
+        public static Move FindBestMove(Position position, int depth, int evalSortDepth, int bestEvalWhiteCanGuarantee, int bestEvalBlackCanGuarantee, DebugPrintMode debugPrintMode, out int bestEval) // very similar to Evaluate() but also returns the move
         {
             var moves = position.GetAllLegalMoves().ToArray();
             Console.WriteLine($"Found {moves.Length} move(s)..");            
@@ -31,14 +36,20 @@ namespace Osmium.Engine
             Console.WriteLine($"Evaluating moves at depth {depth}..");
             bestEval = position.whiteToMove ? int.MinValue : int.MaxValue;
             Move bestMove = moves[0];
-            Console.WriteLine(new string(' ', moves.Length) + moves.Length.ToString()); // print progress bar
+            if (debugPrintMode == DebugPrintMode.ProgressBar)
+                Console.WriteLine(new string(' ', moves.Length) + moves.Length.ToString()); // print progress bar
             foreach (var move in moves)
             {
                 position.MakeMove(move, out var undoInfo);
                 int eval = Evaluate(position, depth - 1, bestEvalWhiteCanGuarantee, bestEvalBlackCanGuarantee);
                 position.UnmakeMove(move, undoInfo);
                 bool isBetterThanPrevious = position.whiteToMove ? (eval > bestEval) : (eval < bestEval);
-                Console.Write("▒"); // print progress bar
+                //
+                if (debugPrintMode == DebugPrintMode.ProgressBar)
+                    Console.Write("▒"); // print progress bar
+                else// if (debugPrintMode == DebugPrintMode.Elaborate)
+                    Console.WriteLine($"{move}: {eval}");
+                //
                 if (!isBetterThanPrevious)
                     continue;
                 bestEval = eval;
@@ -58,12 +69,13 @@ namespace Osmium.Engine
                         bestEvalBlackCanGuarantee = bestEval;
                 }
             }
-            Console.WriteLine();
+            if (debugPrintMode == DebugPrintMode.ProgressBar)
+                Console.WriteLine();
             return bestMove;
         }
 
-        public static Move FindBestMove(Position position, int depth, int evalSortDepth, out int bestEval)
-            => FindBestMove(position, depth, evalSortDepth, int.MinValue, int.MaxValue, out bestEval);
+        public static Move FindBestMove(Position position, int depth, int evalSortDepth, DebugPrintMode debugPrintMode, out int bestEval)
+            => FindBestMove(position, depth, evalSortDepth, int.MinValue, int.MaxValue, debugPrintMode, out bestEval);
 
         public static int Evaluate(Position position, int depth, int bestEvalWhiteCanGuarantee, int bestEvalBlackCanGuarantee)
         {
@@ -73,7 +85,7 @@ namespace Osmium.Engine
                 return position.IsKingInCheck(position.whiteToMove) ? (position.whiteToMove ? -checkmateEval : checkmateEval) : stalemateEval;
             // if reached the end of depth
             if (depth == 0)
-                return Estimator.GetEstimate(position);
+                return Estimator.GetEstimate(position);                
             // otehrwise, just recurse deeper
             int bestEval = position.whiteToMove ? int.MinValue : int.MaxValue;
             foreach (var move in moves)
@@ -122,7 +134,7 @@ namespace Osmium.Engine
             return leafCount;
         }
 
-        public static int CountLeafNodesAtDepthByMove(Position position, int depth)
+        public static int CountLeafNodesAtDepthByMove(Position position, int depth) // perft divide
         {
             var moves = position.GetAllLegalMoves();
             int totalLeafCount = 0;

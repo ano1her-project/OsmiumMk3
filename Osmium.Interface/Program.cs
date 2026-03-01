@@ -11,6 +11,7 @@ namespace Osmium.Interface
         static bool engineMovesAutomatically;
         static int depth = 3;
         static int evalSortDepth = 3;
+        static Minimax.DebugPrintMode minimaxDebugPrintMode = Minimax.DebugPrintMode.ProgressBar;
 
         static void Main()
         {
@@ -23,7 +24,7 @@ namespace Osmium.Interface
             if (engineMovesAutomatically && ((enginePlayingWhite && position.whiteToMove) || (enginePlayingBlack && !position.whiteToMove)))
             {
                 var sw = Stopwatch.StartNew();
-                var bestMove = Minimax.FindBestMove(position, depth, evalSortDepth, out int eval);
+                var bestMove = Minimax.FindBestMove(position, depth, evalSortDepth, minimaxDebugPrintMode, out int eval);
                 var time = sw.Elapsed;
                 position.MakeMove(bestMove, out _);
                 Console.WriteLine($"Found best move {bestMove} in {time} and played it. Eval = {eval}.");
@@ -163,7 +164,7 @@ namespace Osmium.Interface
                 case "let_engine_make_move":
                 case "lemm":
                     var sw = Stopwatch.StartNew();
-                    var bestMove = Minimax.FindBestMove(position, depth, evalSortDepth, out int eval);
+                    var bestMove = Minimax.FindBestMove(position, depth, evalSortDepth, minimaxDebugPrintMode, out int eval);
                     var time = sw.Elapsed;
                     position.MakeMove(bestMove, out _);
                     Console.WriteLine($"Found best move {bestMove} in {time} and played it. Eval = {eval}.");
