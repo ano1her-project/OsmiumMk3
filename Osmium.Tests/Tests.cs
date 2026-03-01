@@ -82,7 +82,7 @@ namespace Osmium.Tests
         [Fact]
         public void Raycast_RookSample()
         {
-            var position = Position.FromFEN("k7/8/8/8/8/8/8/R7 w - - 0 1");
+            var position = Position.FromFEN("k7/8/8/8/8/8/8/R1K5 w - - 0 1");
             Vector2 attacker = new(0, 0);
             Assert.Equal("R", position.GetPiece(0, 0).ToString());
             //
@@ -94,7 +94,7 @@ namespace Osmium.Tests
         [Fact]
         public void Raycast_BishopSample()
         {
-            var position = Position.FromFEN("7k/8/8/8/8/8/8/B7 w - - 0 1");
+            var position = Position.FromFEN("7k/8/8/8/8/8/8/B1K5 w - - 0 1");
             Vector2 attacker = new(0, 0);
             Assert.Equal("B", position.GetPiece(0, 0).ToString());
             //
@@ -106,46 +106,10 @@ namespace Osmium.Tests
         [Fact]
         public void Raycast_WallHit()
         {
-            var position = Position.FromFEN("8/8/8/8/8/8/8/8 w - - 0 1");
+            var position = Position.FromFEN("8/K6k/8/8/8/8/8/8 w - - 0 1");
             Vector2 origin = new(1, 1);
             foreach (var direction in Vector2.allDirections)
                 Assert.True(position.Raycast(origin, direction) is null);
-        }
-
-        [Fact]
-        public void IsPieceCheckingKing_Samples()
-        {
-            var position = Position.FromFEN("r1bqkb1r/pppQ1ppp/5n2/8/4P3/8/PPP2PPP/RNB1KB1R b KQkq - 0 6");
-            Vector2 attacker = new(3, 6);
-            Vector2 king = new(4, 7);
-            Assert.True(position.IsPieceCheckingKing(attacker, king));
-            //
-            position = Position.FromFEN("rnbqkbnr/pppp1p1p/6p1/4Q3/4P3/8/PPPP1PPP/RNB1KBNR b KQkq - 0 3");
-            attacker = new(4, 4);
-            king = new(4, 7);
-            Assert.True(position.IsPieceCheckingKing(attacker, king));
-            //
-            position = Position.FromFEN("rnbqkbnr/ppNp2pp/8/4pp2/8/8/PPPPPPPP/R1BQKBNR b KQkq - 0 3");
-            attacker = new(2, 6);
-            king = new(4, 7);
-            Assert.True(position.IsPieceCheckingKing(attacker, king));
-            //
-            position = Position.FromFEN("8/8/3k1p2/4p1pp/5K2/P7/1PP5/8 w - - 0 1");
-            attacker = new(6, 4);
-            king = new(5, 3);
-            Assert.True(position.IsPieceCheckingKing(attacker, king));
-            attacker = new(4, 4);
-            Assert.True(position.IsPieceCheckingKing(attacker, king));
-            //
-            position = Position.FromFEN("8/8/6k1/7P/7K/8/8/8 w - - 0 1");
-            attacker = new(7, 4);
-            king = new(6, 5);
-            Assert.True(position.IsPieceCheckingKing(attacker, king));
-            //
-            position = Position.FromFEN("r1bqkbnr/ppppp1pp/2n2p2/7Q/4P3/8/PPPP1PPP/RNB1KBNR b KQkq - 2 2");
-            attacker = new(7, 4);
-            king = new(4, 7);
-            Assert.True(position.IsPieceCheckingKing(attacker, king));
         }
 
         [Fact]

@@ -134,6 +134,7 @@ namespace Osmium.Core
     public class Position
     {
         public Piece?[,] board = new Piece?[8, 8];
+        Vector2 whiteKing, blackKing;
         public bool whiteToMove;
         CastlingAvailability castlingAvailability;
         Vector2? enPassantSquare;
@@ -175,9 +176,11 @@ namespace Osmium.Core
             return options[(int)castlingAvailability];
         }
 
-        public Position(Piece?[,] p_board, bool p_whiteToMove, CastlingAvailability p_castlingAvailability, Vector2? p_enPassantSquare, int p_halfmoveClock, int p_fullmoves)
+        public Position(Piece?[,] p_board, Vector2 p_whiteKing, Vector2 p_blackKing, bool p_whiteToMove, CastlingAvailability p_castlingAvailability, Vector2? p_enPassantSquare, int p_halfmoveClock, int p_fullmoves)
         {
             board = p_board;
+            whiteKing = p_whiteKing;
+            blackKing = p_blackKing;
             whiteToMove = p_whiteToMove;
             castlingAvailability = p_castlingAvailability;
             enPassantSquare = p_enPassantSquare;
@@ -192,6 +195,8 @@ namespace Osmium.Core
             var fields = fen.Split(' ');
             // 0th (1st) field = piece placement data
             Piece?[,] board = new Piece?[8, 8];
+            Vector2 whiteKing = -Vector2.one;
+            Vector2 blackKing = -Vector2.one;
             var ranks = fields[0].Split('/');
             for (int rank = 7; rank >= 0; rank--)
             {
@@ -203,10 +208,16 @@ namespace Osmium.Core
                     else
                     {
                         board[rank, file] = Piece.FromChar(ch);
+                        if (ch == 'K')
+                            whiteKing = new(file, rank);
+                        else if (ch == 'k')
+                            blackKing = new(file, rank);
                         file++;
                     }
                 }
             }
+            if (whiteKing == -Vector2.one || blackKing == -Vector2.one)
+                throw new Exception();
             // 1st (2nd) field = active color
             bool whiteToMove = fields[1] == "w";
             // 2nd (3rd) field = castling availability
@@ -218,7 +229,7 @@ namespace Osmium.Core
             // 5th (6th) field = fullmove number
             int fullmoves = int.Parse(fields[5]);
             //
-            return new(board, whiteToMove, castlingAvailability, enPassantSquare, halfmoveClock, fullmoves);
+            return new(board, whiteKing, blackKing, whiteToMove, castlingAvailability, enPassantSquare, halfmoveClock, fullmoves);
         }
 
         public Position DeepCopy()
@@ -229,12 +240,14 @@ namespace Osmium.Core
                 for (int file = 0; file < 8; file++)
                     newBoard[rank, file] = GetPiece(rank, file);
             }
+            Vector2 newWhiteKing = whiteKing;
+            Vector2 newBlackKing = whiteKing;
             bool newWhiteToMove = whiteToMove;
             var newCastlingAvailability = castlingAvailability;
             Vector2? newEnPassantSquare = enPassantSquare is null ? null : enPassantSquare;
             int newHalfmoveClock = halfmoveClock;
             int newFullmoves = fullmoves;
-            return new(newBoard, newWhiteToMove, newCastlingAvailability, newEnPassantSquare, newHalfmoveClock, newFullmoves);
+            return new(newBoard, newWhiteKing, newBlackKing, newWhiteToMove, newCastlingAvailability, newEnPassantSquare, newHalfmoveClock, newFullmoves);
         }
 
         public override string ToString()
@@ -313,10 +326,16 @@ namespace Osmium.Core
                 castlingAvailability &= ~CastlingAvailability.BlackKingside;
             if (move.from == new Vector2(0, 7) || move.to == new Vector2(0, 7))
                 castlingAvailability &= ~CastlingAvailability.BlackQueenside;
-            if (move.from == new Vector2(4, 0))
+            if (piece.type == Piece.Type.King && piece.isWhite)
+            {
+                whiteKing = move.to;
                 castlingAvailability &= ~(CastlingAvailability.WhiteKingside | CastlingAvailability.WhiteQueenside);
-            if (move.from == new Vector2(4, 7))
+            }
+            if (piece.type == Piece.Type.King && !piece.isWhite)
+            {
+                blackKing = move.to;
                 castlingAvailability &= ~(CastlingAvailability.BlackKingside | CastlingAvailability.BlackQueenside);
+            }
             // special flags
             int rank;
             switch (move.flag)
@@ -367,6 +386,10 @@ namespace Osmium.Core
             whiteToMove = !whiteToMove;
             enPassantSquare = undoInfo.previousEnPassantSquare;
             castlingAvailability = undoInfo.previousCastlingAvailability;
+            if (piece.type == Piece.Type.King && piece.isWhite)
+                whiteKing = move.from;
+            if (piece.type == Piece.Type.King && !piece.isWhite)
+                blackKing = move.from;
             int rank;
             switch (move.flag)
             {
@@ -409,13 +432,6 @@ namespace Osmium.Core
             }
         }
 
-        public Position AfterMove(Move move) // not performant!! use MakeMove() and UnmakeMove() instead!!
-        {
-            Position result = this.DeepCopy();
-            result.MakeMove(move, out _);
-            return result;
-        }
-
         // move legality and move generation:
 
         public Piece? Raycast(Vector2 origin, Vector2 direction)
@@ -449,7 +465,7 @@ namespace Osmium.Core
         public bool IsKingInCheck(bool kingColor)
         {
             // find king
-            var king = FindPiece(new(Piece.Type.King, kingColor)) ?? throw new Exception();
+            var king = kingColor ? whiteKing : blackKing;
             // check for attacking pawns
             int forward = kingColor ? 1 : -1;
             for (int fileDelta = -1; fileDelta <= 1; fileDelta += 2 /* = 1 */)
