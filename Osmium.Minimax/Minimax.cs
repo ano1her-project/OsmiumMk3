@@ -124,9 +124,10 @@ namespace Osmium.Engine
             }
             return bestEval;
         }
+    }
 
-        //
-
+    public class Perft
+    {
         public static int CountLeafNodesAtDepth(Position position, int depth) // perft
         {            
             if (depth == 0)

@@ -219,11 +219,11 @@ namespace Osmium.Tests
         [Fact]
         public void LeafNodeCount_StartingPosition() // perft
         {
-            Assert.Equal(20, Minimax.CountLeafNodesAtDepth(Position.startingPosition, 1));
-            Assert.Equal(400, Minimax.CountLeafNodesAtDepth(Position.startingPosition, 2));
-            Assert.Equal(8_902, Minimax.CountLeafNodesAtDepth(Position.startingPosition, 3));
-            Assert.Equal(197_281, Minimax.CountLeafNodesAtDepth(Position.startingPosition, 4));
-            Assert.Equal(4_865_609, Minimax.CountLeafNodesAtDepth(Position.startingPosition, 5));
+            Assert.Equal(20, Perft.CountLeafNodesAtDepth(Position.startingPosition, 1));
+            Assert.Equal(400, Perft.CountLeafNodesAtDepth(Position.startingPosition, 2));
+            Assert.Equal(8_902, Perft.CountLeafNodesAtDepth(Position.startingPosition, 3));
+            Assert.Equal(197_281, Perft.CountLeafNodesAtDepth(Position.startingPosition, 4));
+            Assert.Equal(4_865_609, Perft.CountLeafNodesAtDepth(Position.startingPosition, 5));
         }
     }
 }

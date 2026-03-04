@@ -159,7 +159,7 @@ namespace Osmium.Interface
                     Console.WriteLine($"Evaluation: {Minimax.Evaluate(position, depth, int.MinValue, int.MaxValue)}");
                     break;
                 case "perft":
-                    Console.WriteLine("total amount: " + Minimax.CountLeafNodesAtDepthByMove(position, int.Parse(subs[1])));
+                    Console.WriteLine("total amount: " + Perft.CountLeafNodesAtDepthByMove(position, int.Parse(subs[1])));
                     break;
                 case "let_engine_make_move":
                 case "lemm":
