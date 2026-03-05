@@ -340,6 +340,11 @@ namespace Osmium.Core
         public void SetPiece(Vector2 v, Piece? piece)
             => SetPiece(v.rank, v.file, piece);
 
+        static readonly Vector2 whiteKingsideCorner = new(7, 0);
+        static readonly Vector2 whiteQueensideCorner = new(0, 0);
+        static readonly Vector2 blackKingsideCorner = new(7, 7);
+        static readonly Vector2 blackQueensideCorner = new(0, 7);
+
         public void MakeMove(Move move, out UndoInfo undoInfo)
         {
             // record undo info before doing anything else
@@ -357,13 +362,13 @@ namespace Osmium.Core
             whiteToMove = !whiteToMove;
             enPassantSquare = null;
             // set castling availability
-            if (move.from == new Vector2(7, 0) || move.to == new Vector2(7, 0))
+            if (move.from == whiteKingsideCorner || move.to == whiteKingsideCorner)
                 castlingAvailability &= ~CastlingAvailability.WhiteKingside;
-            if (move.from == new Vector2(0, 0) || move.to == new Vector2(0, 0))
+            if (move.from == whiteQueensideCorner || move.to == whiteQueensideCorner)
                 castlingAvailability &= ~CastlingAvailability.WhiteQueenside;
-            if (move.from == new Vector2(7, 7) || move.to == new Vector2(7, 7))
+            if (move.from == blackKingsideCorner || move.to == blackKingsideCorner)
                 castlingAvailability &= ~CastlingAvailability.BlackKingside;
-            if (move.from == new Vector2(0, 7) || move.to == new Vector2(0, 7))
+            if (move.from == blackQueensideCorner || move.to == blackQueensideCorner)
                 castlingAvailability &= ~CastlingAvailability.BlackQueenside;
             if (piece.type == Piece.Type.King && piece.isWhite)
             {
