@@ -11,6 +11,7 @@ Mk.3 "Hydra" (15.02.2026 - 05.03.2026)
 - solution, multiple projects, multiple files, multiple namespaces
 - github repo
 - Piece class (later struct)
+- simpler Move class (later struct) then in the Mk.1
 - MakeMove and UnmakeMove
 - recursive minimax
 - alpha-beta pruning
