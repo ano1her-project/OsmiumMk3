@@ -152,7 +152,7 @@ namespace Osmium.Interface
                     break;
                 case "estimate":
                 case "est":
-                    Console.WriteLine($"Estimated evaluation: {Estimator.GetEstimate(position)}.");
+                    Console.WriteLine($"Estimated evaluation: {Heuristics.Evaluate(position)}.");
                     break;
                 case "evaluation":
                 case "eval":

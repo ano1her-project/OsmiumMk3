@@ -2,9 +2,9 @@
 
 namespace Osmium.Engine
 {
-    public class Estimator
+    public class Heuristics
     {
-        public static int GetEstimate(Position position) // absolute value, positive for white advantage, negative for black advantage
+        public static int Evaluate(Position position) // absolute value, positive for white advantage, negative for black advantage
         {
             int result = 0;
             for (int rank = 0; rank < 8; rank++)

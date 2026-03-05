@@ -183,7 +183,7 @@ namespace Osmium.Tests
     {
         [Fact]
         public void GetMaterialBalance_StartingPosition()
-            => Assert.Equal(0, Estimator.GetEstimate(Position.startingPosition));
+            => Assert.Equal(0, Heuristics.Evaluate(Position.startingPosition));
     }
 
     public class MinimaxTests

@@ -9,8 +9,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Osmium.Interface", "Osmium.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Osmium.Tests", "Osmium.Tests\Osmium.Tests.csproj", "{4C446971-CC94-4690-86BE-4D587B40DE12}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Osmium.Estimate", "Osmium.Estimate\Osmium.Estimate.csproj", "{2DD958FB-385E-43EF-853E-7C1D8210E212}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Osmium.Minimax", "Osmium.Minimax\Osmium.Minimax.csproj", "{B0229F4C-90FF-4740-AFB9-DFB6B51B0FD3}"
 EndProject
 Global
@@ -31,10 +29,6 @@ Global
 		{4C446971-CC94-4690-86BE-4D587B40DE12}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4C446971-CC94-4690-86BE-4D587B40DE12}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4C446971-CC94-4690-86BE-4D587B40DE12}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2DD958FB-385E-43EF-853E-7C1D8210E212}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2DD958FB-385E-43EF-853E-7C1D8210E212}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2DD958FB-385E-43EF-853E-7C1D8210E212}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2DD958FB-385E-43EF-853E-7C1D8210E212}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B0229F4C-90FF-4740-AFB9-DFB6B51B0FD3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B0229F4C-90FF-4740-AFB9-DFB6B51B0FD3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B0229F4C-90FF-4740-AFB9-DFB6B51B0FD3}.Release|Any CPU.ActiveCfg = Release|Any CPU

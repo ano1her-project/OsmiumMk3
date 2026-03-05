@@ -95,7 +95,7 @@ namespace Osmium.Engine
                 return position.IsKingInCheck(position.whiteToMove) ? (position.whiteToMove ? -checkmateEval : checkmateEval) : stalemateEval;
             // if reached the end of depth
             if (depth == 0)
-                return Estimator.GetEstimate(position);                
+                return Heuristics.Evaluate(position);                
             // otehrwise, just recurse deeper
             int bestEval = position.whiteToMove ? int.MinValue : int.MaxValue;
             Move bestMove = moves[0];
