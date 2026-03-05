@@ -11,7 +11,7 @@ namespace Osmium.Interface
         static bool engineMovesAutomatically;
         static int depth = 3;
         static int evalSortDepth = 3;
-        static Minimax.DebugPrintMode minimaxDebugPrintMode = Minimax.DebugPrintMode.ProgressBar;
+        static Minimax.DebugPrintMode minimaxDebugPrintMode = Minimax.DebugPrintMode.Elaborate;
 
         static void Main()
         {

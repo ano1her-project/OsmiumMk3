@@ -13,7 +13,7 @@ namespace Osmium.Engine
         static readonly int checkmateEval = 50_000;
         static readonly int stalemateEval = 0;
 
-        public static Move FindBestMove(Position position, int depth, int evalSortDepth, int bestEvalWhiteCanGuarantee, int bestEvalBlackCanGuarantee, DebugPrintMode debugPrintMode, out int bestEval) // very similar to Evaluate() but also returns the move
+        public static Move FindBestMove(Position position, int depth, int evalSortDepth, int highestEvalWhiteCanForce, int lowestEvalBlackCanForce, DebugPrintMode debugPrintMode, out int bestEval) // very similar to Evaluate() but also returns the move
         {
             var moves = position.GetAllPseudoLegalMoves().ToArray();
             Console.WriteLine($"Found {moves.Length} move(s)..");            
@@ -30,7 +30,7 @@ namespace Osmium.Engine
                         position.UnmakeMove(move, undoInfo);
                         continue;
                     }
-                    evals.Add(Evaluate(position, evalSortDepth - 1, bestEvalWhiteCanGuarantee, bestEvalBlackCanGuarantee));
+                    evals.Add(Evaluate(position, evalSortDepth - 1, highestEvalWhiteCanForce, lowestEvalBlackCanForce));
                     position.UnmakeMove(move, undoInfo);
                 }
                 Array.Sort(evals.ToArray(), moves); // lowest to highest
@@ -51,7 +51,7 @@ namespace Osmium.Engine
                     position.UnmakeMove(move, undoInfo);
                     continue;
                 }
-                int eval = Evaluate(position, depth - 1, bestEvalWhiteCanGuarantee, bestEvalBlackCanGuarantee);
+                int eval = Evaluate(position, depth - 1, highestEvalWhiteCanForce, lowestEvalBlackCanForce);
                 position.UnmakeMove(move, undoInfo);
                 bool isBetterThanPrevious = position.whiteToMove ? (eval > bestEval) : (eval < bestEval);
                 //
@@ -66,17 +66,17 @@ namespace Osmium.Engine
                 bestMove = move;
                 if (position.whiteToMove)
                 {
-                    if (bestEval >= bestEvalBlackCanGuarantee) // ..then black will not let white get here.
+                    if (bestEval >= lowestEvalBlackCanForce) // ..then black will not make the move that would lead to this node.
                         break;
-                    if (bestEval > bestEvalWhiteCanGuarantee)
-                        bestEvalWhiteCanGuarantee = bestEval;
+                    if (bestEval > highestEvalWhiteCanForce)
+                        highestEvalWhiteCanForce = bestEval;
                 }
                 else // black to move
                 {
-                    if (bestEval <= bestEvalWhiteCanGuarantee) // ..then white will not let black get here.
+                    if (bestEval <= highestEvalWhiteCanForce) // ..then white will not make the move that would lead to this node.
                         break;
-                    if (bestEval < bestEvalBlackCanGuarantee)
-                        bestEvalBlackCanGuarantee = bestEval;
+                    if (bestEval < lowestEvalBlackCanForce)
+                        lowestEvalBlackCanForce = bestEval;
                 }
             }
             if (debugPrintMode == DebugPrintMode.ProgressBar)
@@ -87,7 +87,7 @@ namespace Osmium.Engine
         public static Move FindBestMove(Position position, int depth, int evalSortDepth, DebugPrintMode debugPrintMode, out int bestEval)
             => FindBestMove(position, depth, evalSortDepth, int.MinValue, int.MaxValue, debugPrintMode, out bestEval);
 
-        public static int Evaluate(Position position, int depth, int bestEvalWhiteCanGuarantee, int bestEvalBlackCanGuarantee)
+        public static int Evaluate(Position position, int depth, int highestEvalWhiteCanForce, int lowestEvalBlackCanForce)
         {
             // first check for checkmate or stalemate
             var moves = position.GetAllLegalMoves();
@@ -102,7 +102,7 @@ namespace Osmium.Engine
             foreach (var move in moves)
             {
                 position.MakeMove(move, out var undoInfo);
-                int eval = Evaluate(position, depth - 1, bestEvalWhiteCanGuarantee, bestEvalBlackCanGuarantee);
+                int eval = Evaluate(position, depth - 1, highestEvalWhiteCanForce, lowestEvalBlackCanForce);
                 position.UnmakeMove(move, undoInfo);
                 bool isBetterThanPrevious = position.whiteToMove ? (eval > bestEval) : (eval < bestEval);
                 if (!isBetterThanPrevious)
@@ -111,17 +111,17 @@ namespace Osmium.Engine
                 bestMove = move;
                 if (position.whiteToMove)
                 {
-                    if (bestEval >= bestEvalBlackCanGuarantee) // ..then black will not let white get here.
+                    if (bestEval >= lowestEvalBlackCanForce) // ..then black will not make the move that would lead to this node.
                         break;
-                    if (bestEval > bestEvalWhiteCanGuarantee)
-                        bestEvalWhiteCanGuarantee = bestEval;
+                    if (bestEval > highestEvalWhiteCanForce)
+                        highestEvalWhiteCanForce = bestEval;
                 }
-                else
+                else // black to move
                 {
-                    if (bestEval <= bestEvalWhiteCanGuarantee) // ..then white will not let black get here.
+                    if (bestEval <= highestEvalWhiteCanForce) // ..then white will not make the move that would lead to this node.
                         break;
-                    if (bestEval < bestEvalBlackCanGuarantee)
-                        bestEvalBlackCanGuarantee = bestEval;
+                    if (bestEval < lowestEvalBlackCanForce)
+                        lowestEvalBlackCanForce = bestEval;
                 }
             }
             return bestEval;
