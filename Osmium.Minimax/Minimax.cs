@@ -92,7 +92,16 @@ public class Minimax
 
     public static int Evaluate(Position position, int depth, int highestEvalWhiteCanForce, int lowestEvalBlackCanForce)
     {
-        // first check for checkmate or stalemate
+        // first, check the transposition table
+        var entry = transpositionTable.entries[transpositionTable.GetIndex(position.hash)];
+        if (entry.hash == position.hash)
+        {
+            if ((entry.nodeType == NodeType.Exact) ||
+                (entry.nodeType == NodeType.LowerBound && entry.eval >= lowestEvalBlackCanForce) ||
+                (entry.nodeType == NodeType.UpperBound && entry.eval < highestEvalWhiteCanForce))
+                return entry.eval;
+        }
+        // check for checkmate or stalemate
         var moves = position.GetAllLegalMoves();
         if (moves.Count == 0)
             return position.IsKingInCheck(position.whiteToMove) ? (position.whiteToMove ? -checkmateEval : checkmateEval) : stalemateEval;
@@ -131,16 +140,25 @@ public class Minimax
     }
 }
 
+public enum NodeType
+{
+    Exact,
+    LowerBound,
+    UpperBound
+}
+
 public readonly struct TranspositionTableEntry
 {
-    readonly long hash;
-    readonly Position position;
-    readonly int eval;
+    public readonly long hash;
+    //readonly Position position;
+    public readonly NodeType nodeType;
+    public readonly int eval;
 
-    public TranspositionTableEntry(long p_hash, Position p_position, int p_eval)
+    public TranspositionTableEntry(long p_hash, /*Position p_position,*/ NodeType p_nodeType, int p_eval)
     {
         hash = p_hash;
-        position = p_position.DeepCopy();
+        //position = p_position.DeepCopy();
+        nodeType = p_nodeType;
         eval = p_eval;
     }
 }
@@ -148,13 +166,18 @@ public readonly struct TranspositionTableEntry
 public class TranspositionTable
 {
     public TranspositionTableEntry[] entries;
-    int size;
+    readonly int size;
+    readonly int sizeMask;
 
     public TranspositionTable(int p_size)
     {
         size = p_size;
+        sizeMask = size - 1; // all one bits
         entries = new TranspositionTableEntry[size];
     }
+
+    public long GetIndex(long hash)
+        => hash & (long)sizeMask;
 }
 
 public class Perft

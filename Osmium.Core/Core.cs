@@ -131,6 +131,7 @@ public class Position
     Vector2? enPassantSquare;
     int halfmoveClock;
     int fullmoves;
+    public long hash;
 
     [Flags]
     public enum CastlingAvailability : byte
