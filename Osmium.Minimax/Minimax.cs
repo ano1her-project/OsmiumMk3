@@ -14,6 +14,8 @@ public class Minimax
     static readonly int checkmateEval = 50_000;
     static readonly int stalemateEval = 0;
 
+    static TranspositionTable transpositionTable = new(1 << 20);
+
     public static Move FindBestMove(Position position, int depth, int evalSortDepth, int highestEvalWhiteCanForce, int lowestEvalBlackCanForce, DebugPrintMode debugPrintMode, out int bestEval) // very similar to Evaluate() but also returns the move
     {
         var moves = position.GetAllPseudoLegalMoves().ToArray();
@@ -96,7 +98,7 @@ public class Minimax
             return position.IsKingInCheck(position.whiteToMove) ? (position.whiteToMove ? -checkmateEval : checkmateEval) : stalemateEval;
         // if reached the end of depth
         if (depth == 0)
-            return Heuristics.Evaluate(position);
+            return Heuristics.Heuristics.Evaluate(position);
         // otehrwise, just recurse deeper
         int bestEval = position.whiteToMove ? int.MinValue : int.MaxValue;
         Move bestMove = moves[0];
@@ -126,6 +128,32 @@ public class Minimax
             }
         }
         return bestEval;
+    }
+}
+
+public readonly struct TranspositionTableEntry
+{
+    readonly long hash;
+    readonly Position position;
+    readonly int eval;
+
+    public TranspositionTableEntry(long p_hash, Position p_position, int p_eval)
+    {
+        hash = p_hash;
+        position = p_position.DeepCopy();
+        eval = p_eval;
+    }
+}
+
+public class TranspositionTable
+{
+    public TranspositionTableEntry[] entries;
+    int size;
+
+    public TranspositionTable(int p_size)
+    {
+        size = p_size;
+        entries = new TranspositionTableEntry[size];
     }
 }
 

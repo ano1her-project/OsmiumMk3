@@ -277,9 +277,6 @@ public class Position
     public static bool operator !=(Position a, Position b)
         => !(a == b);
 
-    public override int GetHashCode()
-        => HashCode.Combine(board, whiteToMove, castlingAvailability, enPassantSquare, halfmoveClock, fullmoves);
-
     public override string ToString()
         => ToFEN();
 
