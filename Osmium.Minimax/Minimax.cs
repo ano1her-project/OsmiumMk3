@@ -105,10 +105,18 @@ public class Minimax
         // check for checkmate or stalemate
         var moves = position.GetAllLegalMoves();
         if (moves.Count == 0)
-            return position.IsKingInCheck(position.whiteToMove) ? (position.whiteToMove ? -checkmateEval : checkmateEval) : stalemateEval;
+        {
+            int eval = position.IsKingInCheck(position.whiteToMove) ? (position.whiteToMove ? -checkmateEval : checkmateEval) : stalemateEval;
+            transpositionTable.entries[index] = new(position.hash, depth, NodeType.Exact, eval);
+            return eval;
+        }
         // if reached the end of depth
         if (depth == 0)
-            return Heuristics.Heuristics.Evaluate(position);
+        {
+            int eval = Heuristics.Heuristics.Evaluate(position);
+            transpositionTable.entries[index] = new(position.hash, depth, NodeType.Exact, eval);
+            return eval;
+        }
         // otherwise, just recurse deeper
         int bestEval = position.whiteToMove ? int.MinValue : int.MaxValue;
         foreach (var move in moves)
