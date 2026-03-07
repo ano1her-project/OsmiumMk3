@@ -12,10 +12,11 @@ internal class Program
     static bool engineMovesAutomatically;
     static int depth = 3;
     static int evalSortDepth = 3;
-    static Minimax.Minimax.DebugPrintMode minimaxDebugPrintMode = Minimax.Minimax.DebugPrintMode.Elaborate;
+    static Minimax.Minimax.DebugPrintMode minimaxDebugPrintMode = Minimax.Minimax.DebugPrintMode.ProgressBar;
 
     static void Main()
     {
+        Zobrist.Initialize(777);
         PrettyPrinter.Print(position);
         CommandLoop();
     }
@@ -153,7 +154,7 @@ internal class Program
                 break;
             case "estimate":
             case "est":
-                Console.WriteLine($"Estimated evaluation: {Heuristics.Evaluate(position)}.");
+                Console.WriteLine($"Estimated evaluation: {Heuristics.Heuristics.Evaluate(position)}.");
                 break;
             case "evaluation":
             case "eval":

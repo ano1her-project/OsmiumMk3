@@ -2,8 +2,8 @@
 
 public class Zobrist
 {
-    static long[,,] table = new long[8, 8, 12];
-    static long whiteToMove;
+    static public long[,,] table = new long[8, 8, 12];
+    static public long whiteToMove;
 
     public static void Initialize(int seed)
     {

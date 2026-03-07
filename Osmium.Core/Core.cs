@@ -324,7 +324,14 @@ public class Position
         => GetPiece(v.rank, v.file);
 
     public void SetPiece(int rank, int file, Piece? piece)
-        => board[rank, file] = piece;
+    {
+        var previousPiece = GetPiece(rank, file);
+        if (previousPiece is not null)
+            hash ^= Zobrist.table[rank, file, Zobrist.GetPieceIndex((Piece)previousPiece)];
+        board[rank, file] = piece;
+        if (piece is not null)
+            hash ^= Zobrist.table[rank, file, Zobrist.GetPieceIndex((Piece)piece)];
+    }
 
     public void SetPiece(Vector2 v, Piece? piece)
         => SetPiece(v.rank, v.file, piece);
@@ -333,6 +340,12 @@ public class Position
     static readonly Vector2 whiteQueensideCorner = new(0, 0);
     static readonly Vector2 blackKingsideCorner = new(7, 7);
     static readonly Vector2 blackQueensideCorner = new(0, 7);
+
+    void FlipColorToMove()
+    {
+        whiteToMove = !whiteToMove;
+        hash ^= Zobrist.whiteToMove;
+    }
 
     public void MakeMove(Move move, out UndoInfo undoInfo)
     {
@@ -348,7 +361,9 @@ public class Position
         var piece = GetPiece(move.from) ?? throw new Exception();
         SetPiece(move.from, null);
         SetPiece(move.to, piece);
-        whiteToMove = !whiteToMove;
+        if (!whiteToMove)
+            fullmoves++;
+        FlipColorToMove();
         enPassantSquare = null;
         // set castling availability
         if (move.from == whiteKingsideCorner || move.to == whiteKingsideCorner)
@@ -416,7 +431,9 @@ public class Position
     public void UnmakeMove(Move move, UndoInfo undoInfo)
     {
         var piece = GetPiece(move.to) ?? throw new InvalidOperationException();
-        whiteToMove = !whiteToMove;
+        if (!whiteToMove)
+            fullmoves--;
+        FlipColorToMove();
         enPassantSquare = undoInfo.previousEnPassantSquare;
         castlingAvailability = undoInfo.previousCastlingAvailability;
         if (piece.type == Piece.Type.King && piece.isWhite)
