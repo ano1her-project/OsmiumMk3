@@ -81,6 +81,39 @@ internal class Program
                     Console.WriteLine($"Found best move {bestMove} in {time}. Eval = {eval}.");
                 }
                 break;
+            default: // a move:
+                if (subs.Length != 1 || input.Length != 2)
+                {
+                    Console.WriteLine("invalid command.");
+                    break;
+                }
+                var from = Vector2.FromString(input);
+                var piece = position.GetPiece(from);
+                if (piece is null)
+                {
+                    Console.WriteLine("square is empty. aborting move.");
+                    break;
+                }
+                if (piece?.isWhite != position.whiteToMove)
+                {
+                    Console.WriteLine("piece color doesn't match color to move. aborting move");
+                    break;
+                }
+                var moves = position.FilterLegalMoves(position.GetPieceMoves((Piece)piece, from));
+                var tos = new Vector2[moves.Count];
+                for (int i = 0; i < moves.Count; i++)
+                    tos[i] = moves[i].to;
+                PrettyPrinter.Print(position, from, tos);
+                var to = Vector2.FromString(Console.ReadLine());
+                int moveIndex = Array.IndexOf(tos, to);
+                if (moveIndex == -1)
+                {
+                    Console.WriteLine("invalid destination for this piece. aborting move.");
+                    break;
+                }
+                position.MakeMove(moves[moveIndex], out _);
+                PrettyPrinter.Print(position);
+                break;
         }
     }
 
