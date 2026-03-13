@@ -183,7 +183,7 @@ public class EstimateTests
 {
     [Fact]
     public void GetMaterialBalance_StartingPosition()
-        => Assert.Equal(0, Heuristics.Evaluate(Position.startingPosition));
+        => Assert.Equal(0, Heuristics.Heuristics.Evaluate(Position.startingPosition));
 }
 
 public class MinimaxTests
