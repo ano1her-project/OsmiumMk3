@@ -16,14 +16,14 @@ public class Heuristics
                     continue;
                 Piece.Type type = (Piece.Type)piece?.type; // getting around the nulls
                 bool isWhite = (bool)piece?.isWhite;
-                int pieceValue = materialValue[(int)type] + pieceSquareTable[type][isWhite ? rank : (7 - rank), file];
+                int pieceValue = materialValue[(int)type] + pieceSquareTable[type][isWhite ? (7 - rank) : rank, file];
                 result += pieceValue * (isWhite ? 1 : -1);
             }
         }
         return result;
     }
 
-    static readonly int[] materialValue = [100, 330, 310, 500, 900, 0];        
+    static readonly int[] materialValue = [100, 330, 310, 500, 900, 0];
 
     static readonly int[,] pawnSquareTable =
     {
