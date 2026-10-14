@@ -60,7 +60,7 @@ public class Minimax
             //
             if (debugPrintMode == DebugPrintMode.ProgressBar)
                 Console.Write("▒"); // print progress bar
-            else// if (debugPrintMode == DebugPrintMode.Elaborate)
+            else // debugPrintMode == DebugPrintMode.Elaborate
                 Console.WriteLine($"{move}: {eval}");
             //
             if (!isBetterThanPrevious)
