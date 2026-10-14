@@ -34,7 +34,7 @@ public class PrettyPrinter
         ShadedInverted
     }
 
-    public static void Print(Position position, PieceOptions pieceOptions, BackgroundOptions backgroundOptions, Vector2? from, Vector2[] tos)
+    public static void Print(Position position, PieceOptions pieceOptions, BackgroundOptions backgroundOptions, Vector2[] markings)
     {
         string output = "";
         for (int rank = 7; rank >= 0; rank--)
@@ -43,7 +43,7 @@ public class PrettyPrinter
             for (int file = 0; file < 8; file++)
             {
                 if (position.GetPiece(rank, file) is null)
-                    output += tos.Contains(new(file, rank)) ? "()" : backgroundOptions switch
+                    output += markings.Contains(new(file, rank)) ? "()" : backgroundOptions switch
                     {
                         BackgroundOptions.Simple => ". ",
                         BackgroundOptions.Shaded => GetSquareShadeString(rank, file, false),
@@ -57,7 +57,7 @@ public class PrettyPrinter
                         PieceOptions.Unicode => unicodePieces[(Piece)position.GetPiece(rank, file)],
                         PieceOptions.UnicodeInverted => unicodePieces[(Piece)position.GetPiece(rank, file)?.GetInverted()],
                         _ => throw new Exception()
-                    } + ((from is not null && from == new Vector2(file, rank)) ? ")" : " ");
+                    } + (markings.Contains(new(file, rank)) ? ")" : " ");
             }
             output += "\n";
         }
@@ -66,13 +66,13 @@ public class PrettyPrinter
     }
 
     public static void Print(Position position)
-        => Print(position, PieceOptions.Ascii, BackgroundOptions.ShadedInverted, null, []);
+        => Print(position, PieceOptions.Ascii, BackgroundOptions.ShadedInverted, []);
 
     public static void Print(Position position, PieceOptions pieceOptions, BackgroundOptions backgroundOptions)
-        => Print(position, pieceOptions, backgroundOptions, null, []);
+        => Print(position, pieceOptions, backgroundOptions, []);
 
-    public static void Print(Position position, Vector2? from, Vector2[] tos)
-        => Print(position, PieceOptions.Ascii, BackgroundOptions.ShadedInverted, from, tos);
+    public static void Print(Position position, Vector2[] markings)
+        => Print(position, PieceOptions.Ascii, BackgroundOptions.ShadedInverted, markings);
 
     static bool IsSquareWhite(int rank, int file)
         => (rank + file) % 2 != 0;

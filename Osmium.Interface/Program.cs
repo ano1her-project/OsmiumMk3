@@ -28,7 +28,7 @@ internal class Program
         if (printPosition)
         {
             PrettyPrinter.Print(position);
-            printPosition = false;
+            //printPosition = false;
         }
         if (engineMovesAutomatically && ((enginePlayingWhite && position.whiteToMove) || (enginePlayingBlack && !position.whiteToMove)))
             LetEngineMakeMove();
@@ -103,7 +103,8 @@ internal class Program
                 var tos = new Vector2[moves.Count];
                 for (int i = 0; i < moves.Count; i++)
                     tos[i] = moves[i].to;
-                PrettyPrinter.Print(position, from, tos);
+                PrettyPrinter.Print(position, [..tos, from]);
+                Console.Write(">> ");
                 var to = Vector2.FromString(Console.ReadLine());
                 int moveIndex = Array.IndexOf(tos, to);
                 if (moveIndex == -1)
@@ -112,7 +113,6 @@ internal class Program
                     break;
                 }
                 position.MakeMove(moves[moveIndex], out _);
-                PrettyPrinter.Print(position);
                 break;
         }
     }
