@@ -7,7 +7,7 @@ namespace Osmium.Interface;
 
 internal class Program
 {
-    static Position position = Position.startingPosition;
+    static Position position = Position.StartingPosition();
     static bool enginePlayingWhite, enginePlayingBlack;
     static bool engineMovesAutomatically;
     static int depth = 3;
@@ -123,7 +123,7 @@ internal class Program
         {
             case "position":
                 if (subs[2] == "startpos" || subs[1] == "start")
-                    position = Position.startingPosition.DeepCopy();
+                    position = Position.StartingPosition();
                 else if (subs[2] == "kiwipete")
                     position = Position.FromFEN("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 99 99");
                 else if (subs.Length != 8)

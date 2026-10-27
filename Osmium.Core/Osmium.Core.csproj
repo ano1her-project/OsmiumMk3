@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="Zobrist.cs~RFd95302.TMP" />
+  </ItemGroup>
+
 </Project>

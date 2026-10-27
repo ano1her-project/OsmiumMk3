@@ -5,8 +5,8 @@ public class Position
     public Piece?[,] board = new Piece?[8, 8];
     Vector2 whiteKing, blackKing;
     public bool whiteToMove;
-    CastlingAvailability castlingAvailability;
-    Vector2? enPassantSquare;
+    public CastlingAvailability castlingAvailability;
+    public Vector2? enPassantSquare;
     int halfmoveClock;
     int fullmoves;
     public long hash;
@@ -56,9 +56,11 @@ public class Position
         enPassantSquare = p_enPassantSquare;
         halfmoveClock = p_halfmoveClock;
         fullmoves = p_fullmoves;
+        hash = Zobrist.GetHashFor(this);
     }
 
-    public static readonly Position startingPosition = FromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    public static Position StartingPosition()
+        => FromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
     public static Position FromFEN(string fen)
     {
@@ -74,7 +76,7 @@ public class Position
             foreach (var ch in ranks[7 - rank].ToCharArray())
             {
                 if (char.IsDigit(ch))
-                    file += ch - '0'; // effectively converts ch to an int
+                    file += ch - '0'; // effectively converts a character representing an int to an int
                 else
                 {
                     board[rank, file] = Piece.FromChar(ch);
@@ -225,6 +227,41 @@ public class Position
         hash ^= Zobrist.whiteToMove;
     }
 
+    void RemoveCastlingRight(CastlingAvailability flag)
+    {
+        castlingAvailability &= ~flag;
+        if (flag.HasFlag(CastlingAvailability.WhiteKingside))
+            hash &= ~Zobrist.castlingRights[0];
+        if (flag.HasFlag(CastlingAvailability.WhiteQueenside))
+            hash &= ~Zobrist.castlingRights[1];
+        if (flag.HasFlag(CastlingAvailability.BlackKingside))
+            hash &= ~Zobrist.castlingRights[2];
+        if (flag.HasFlag(CastlingAvailability.BlackQueenside))
+            hash &= ~Zobrist.castlingRights[3];
+    }
+
+    void RestoreCastlingRight(CastlingAvailability flag)
+    {
+        castlingAvailability |= flag;
+        if (flag.HasFlag(CastlingAvailability.WhiteKingside))
+            hash |= Zobrist.castlingRights[0];
+        if (flag.HasFlag(CastlingAvailability.WhiteQueenside))
+            hash |= Zobrist.castlingRights[1];
+        if (flag.HasFlag(CastlingAvailability.BlackKingside))
+            hash |= Zobrist.castlingRights[2];
+        if (flag.HasFlag(CastlingAvailability.BlackQueenside))
+            hash |= Zobrist.castlingRights[3];
+    }
+
+    void SetEnPassantSquare(Vector2? newSquare)
+    {
+        if (enPassantSquare.HasValue)
+            hash ^= Zobrist.enPassantSquares[enPassantSquare.Value.rank == 2 ? 0 : 1, enPassantSquare.Value.file];
+        enPassantSquare = newSquare;
+        if (newSquare.HasValue)
+            hash ^= Zobrist.enPassantSquares[newSquare.Value.rank == 2 ? 0 : 1, newSquare.Value.file];
+    }
+
     public void MakeMove(Move move, out UndoInfo undoInfo)
     {
         // record undo info before doing anything else
@@ -242,25 +279,25 @@ public class Position
         if (!whiteToMove)
             fullmoves++;
         FlipColorToMove();
-        enPassantSquare = null;
+        SetEnPassantSquare(null);
         // set castling availability
         if (move.from == whiteKingsideCorner || move.to == whiteKingsideCorner)
-            castlingAvailability &= ~CastlingAvailability.WhiteKingside;
+            RemoveCastlingRight(CastlingAvailability.WhiteKingside);
         if (move.from == whiteQueensideCorner || move.to == whiteQueensideCorner)
-            castlingAvailability &= ~CastlingAvailability.WhiteQueenside;
+            RemoveCastlingRight(CastlingAvailability.WhiteQueenside);
         if (move.from == blackKingsideCorner || move.to == blackKingsideCorner)
-            castlingAvailability &= ~CastlingAvailability.BlackKingside;
+            RemoveCastlingRight(CastlingAvailability.BlackKingside);
         if (move.from == blackQueensideCorner || move.to == blackQueensideCorner)
-            castlingAvailability &= ~CastlingAvailability.BlackQueenside;
+            RemoveCastlingRight(CastlingAvailability.BlackQueenside);
         if (piece.type == Piece.Type.King && piece.isWhite)
         {
             whiteKing = move.to;
-            castlingAvailability &= ~(CastlingAvailability.WhiteKingside | CastlingAvailability.WhiteQueenside);
+            RemoveCastlingRight(CastlingAvailability.WhiteKingside | CastlingAvailability.WhiteQueenside);
         }
         if (piece.type == Piece.Type.King && !piece.isWhite)
         {
             blackKing = move.to;
-            castlingAvailability &= ~(CastlingAvailability.BlackKingside | CastlingAvailability.BlackQueenside);
+            RemoveCastlingRight(CastlingAvailability.BlackKingside | CastlingAvailability.BlackQueenside);
         }
         // special flags
         int rank;
@@ -272,18 +309,18 @@ public class Position
                 rank = piece.isWhite ? 0 : 7;
                 SetPiece(rank, 7, null);
                 SetPiece(rank, 5, new(Piece.Type.Rook, piece.isWhite));
-                castlingAvailability &= piece.isWhite ? ~CastlingAvailability.WhiteKingside : ~CastlingAvailability.BlackKingside;
-                castlingAvailability &= piece.isWhite ? ~CastlingAvailability.WhiteQueenside : ~CastlingAvailability.BlackQueenside;
+                RemoveCastlingRight(piece.isWhite ? CastlingAvailability.WhiteKingside : CastlingAvailability.BlackKingside);
+                RemoveCastlingRight(piece.isWhite ? CastlingAvailability.WhiteQueenside : CastlingAvailability.BlackQueenside);
                 break;
             case Move.Flag.CastlingQueenside:
                 rank = piece.isWhite ? 0 : 7;
                 SetPiece(rank, 0, null);
                 SetPiece(rank, 3, new(Piece.Type.Rook, piece.isWhite));
-                castlingAvailability &= piece.isWhite ? ~CastlingAvailability.WhiteKingside : ~CastlingAvailability.BlackKingside;
-                castlingAvailability &= piece.isWhite ? ~CastlingAvailability.WhiteQueenside : ~CastlingAvailability.BlackQueenside;
+                RemoveCastlingRight(piece.isWhite ? CastlingAvailability.WhiteKingside : CastlingAvailability.BlackKingside);
+                RemoveCastlingRight(piece.isWhite ? CastlingAvailability.WhiteQueenside : CastlingAvailability.BlackQueenside);
                 break;
             case Move.Flag.TwoSquarePawnPush:
-                enPassantSquare = move.from + (piece.isWhite ? Vector2.up : Vector2.down);
+                SetEnPassantSquare(move.from + (piece.isWhite ? Vector2.up : Vector2.down));
                 break;
             case Move.Flag.EnPassant:
                 SetPiece(move.to + (piece.isWhite ? Vector2.down : Vector2.up), null);
@@ -308,12 +345,12 @@ public class Position
 
     public void UnmakeMove(Move move, UndoInfo undoInfo)
     {
-        var piece = GetPiece(move.to) ?? throw new InvalidOperationException();
+        var piece = GetPiece(move.to) ?? throw new InvalidOperationException();        
+        FlipColorToMove();
         if (!whiteToMove)
             fullmoves--;
-        FlipColorToMove();
-        enPassantSquare = undoInfo.previousEnPassantSquare;
-        castlingAvailability = undoInfo.previousCastlingAvailability;
+        SetEnPassantSquare(undoInfo.previousEnPassantSquare);
+        RestoreCastlingRight(undoInfo.previousCastlingAvailability);
         if (piece.type == Piece.Type.King && piece.isWhite)
             whiteKing = move.from;
         if (piece.type == Piece.Type.King && !piece.isWhite)

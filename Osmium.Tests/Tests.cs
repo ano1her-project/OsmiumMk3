@@ -77,7 +77,7 @@ public class CoreTests
 
     [Fact]
     public void StartingPositionToFen()
-        => Assert.Equal("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", Position.startingPosition.ToFEN());
+        => Assert.Equal("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", Position.StartingPosition().ToFEN());
 
     [Fact]
     public void Raycast_RookSample()
@@ -124,7 +124,7 @@ public class CoreTests
 
     [Fact]
     public void GetAllLegalMoves_StartingPositionMoveCount()
-        => Assert.Equal(20, Position.startingPosition.GetAllLegalMoves().Count);
+        => Assert.Equal(20, Position.StartingPosition().GetAllLegalMoves().Count);
 
     [Fact]
     public void GetAllLegalMoves_AccountsForCheck()
@@ -153,7 +153,7 @@ public class CoreTests
     [Fact]
     public void MakeAndUnmake_StartingPosition()
     {
-        var position = Position.startingPosition.DeepCopy();
+        var position = Position.StartingPosition();
         var moves = position.GetAllLegalMoves();
         Assert.Equal(20, moves.Count);
         foreach (var move in moves)
@@ -177,13 +177,41 @@ public class CoreTests
             Assert.Equal("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 99 99", position.ToFEN());
         }
     }
+
+    [Fact]
+    public void EnPassantSquare()
+    {
+        var position = Position.StartingPosition();
+        var moves = position.GetAllLegalMoves();
+        foreach (var move in moves)
+        {
+            if (move.flag != Move.Flag.TwoSquarePawnPush)
+                continue;
+            position.MakeMove(move, out var undoInfo);
+            Assert.True(position.enPassantSquare.HasValue);
+            Assert.Equal(2, position.enPassantSquare.Value.rank);
+            Assert.Equal(move.to.file, position.enPassantSquare.Value.file);
+            position.UnmakeMove(move, undoInfo);
+        }
+    }
+
+    [Fact]
+    public void IncrementalHashing()
+    {
+        var position = Position.StartingPosition();
+        position.MakeMove(new(new(4, 1), new(4, 3), Move.Flag.TwoSquarePawnPush), out _);
+        position.MakeMove(new(new(4, 6), new(4, 4), Move.Flag.TwoSquarePawnPush), out _);
+        position.MakeMove(new(new(6, 0), new(5, 2)), out _);
+        position.MakeMove(new(new(1, 7), new(2, 5)), out _);
+        Assert.Equal(Zobrist.GetHashFor(Position.FromFEN("r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3")), position.hash);
+    }
 }
 
 public class EstimateTests
 {
     [Fact]
     public void GetMaterialBalance_StartingPosition()
-        => Assert.Equal(0, Heuristics.Heuristics.Evaluate(Position.startingPosition));
+        => Assert.Equal(0, Heuristics.Heuristics.Evaluate(Position.StartingPosition()));
 }
 
 public class MinimaxTests
@@ -219,11 +247,11 @@ public class MinimaxTests
     [Fact]
     public void LeafNodeCount_StartingPosition() // perft
     {
-        Assert.Equal(20, Perft.CountLeafNodesAtDepth(Position.startingPosition, 1));
-        Assert.Equal(400, Perft.CountLeafNodesAtDepth(Position.startingPosition, 2));
-        Assert.Equal(8_902, Perft.CountLeafNodesAtDepth(Position.startingPosition, 3));
-        Assert.Equal(197_281, Perft.CountLeafNodesAtDepth(Position.startingPosition, 4));
-        Assert.Equal(4_865_609, Perft.CountLeafNodesAtDepth(Position.startingPosition, 5));
+        Assert.Equal(20, Perft.CountLeafNodesAtDepth(Position.StartingPosition(), 1));
+        Assert.Equal(400, Perft.CountLeafNodesAtDepth(Position.StartingPosition(), 2));
+        Assert.Equal(8_902, Perft.CountLeafNodesAtDepth(Position.StartingPosition(), 3));
+        Assert.Equal(197_281, Perft.CountLeafNodesAtDepth(Position.StartingPosition(), 4));
+        Assert.Equal(4_865_609, Perft.CountLeafNodesAtDepth(Position.StartingPosition(), 5));
     }
 }
 
