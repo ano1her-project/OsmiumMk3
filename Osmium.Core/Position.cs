@@ -6,7 +6,7 @@ public class Position
     Vector2 whiteKing, blackKing;
     public bool whiteToMove;
     public CastlingAvailability castlingAvailability;
-    public Vector2? enPassantSquare;
+    public int enPassantFile;
     int halfmoveClock;
     int fullmoves;
     public long hash;
@@ -46,14 +46,14 @@ public class Position
         return options[(int)castlingAvailability];
     }
 
-    public Position(Piece?[,] p_board, Vector2 p_whiteKing, Vector2 p_blackKing, bool p_whiteToMove, CastlingAvailability p_castlingAvailability, Vector2? p_enPassantSquare, int p_halfmoveClock, int p_fullmoves)
+    public Position(Piece?[,] p_board, Vector2 p_whiteKing, Vector2 p_blackKing, bool p_whiteToMove, CastlingAvailability p_castlingAvailability, int p_enPassantFile, int p_halfmoveClock, int p_fullmoves)
     {
         board = p_board;
         whiteKing = p_whiteKing;
         blackKing = p_blackKing;
         whiteToMove = p_whiteToMove;
         castlingAvailability = p_castlingAvailability;
-        enPassantSquare = p_enPassantSquare;
+        enPassantFile = p_enPassantFile;
         halfmoveClock = p_halfmoveClock;
         fullmoves = p_fullmoves;
         hash = Zobrist.GetHashFor(this);
@@ -95,13 +95,13 @@ public class Position
         // 2nd (3rd) field = castling availability
         var castlingAvailability = CastlingRightsFromString(fields[2]);
         // 3rd (4th) field = en passant target square
-        Vector2? enPassantSquare = fields[3] == "-" ? null : Vector2.FromString(fields[3]);
+        int enPassantFile = fields[3] == "-" ? -1 : Vector2.FromString(fields[3]).file;
         // 4th (5th) field = halfmove clock used for the fifty move rule
         int halfmoveClock = int.Parse(fields[4]);
         // 5th (6th) field = fullmove number
         int fullmoves = int.Parse(fields[5]);
         //
-        return new(board, whiteKing, blackKing, whiteToMove, castlingAvailability, enPassantSquare, halfmoveClock, fullmoves);
+        return new(board, whiteKing, blackKing, whiteToMove, castlingAvailability, enPassantFile, halfmoveClock, fullmoves);
     }
 
     public Position DeepCopy()
@@ -116,11 +116,14 @@ public class Position
         Vector2 newBlackKing = whiteKing;
         bool newWhiteToMove = whiteToMove;
         var newCastlingAvailability = castlingAvailability;
-        Vector2? newEnPassantSquare = enPassantSquare is null ? null : enPassantSquare;
+        int newEnPassantFile = enPassantFile;
         int newHalfmoveClock = halfmoveClock;
         int newFullmoves = fullmoves;
-        return new(newBoard, newWhiteKing, newBlackKing, newWhiteToMove, newCastlingAvailability, newEnPassantSquare, newHalfmoveClock, newFullmoves);
+        return new(newBoard, newWhiteKing, newBlackKing, newWhiteToMove, newCastlingAvailability, newEnPassantFile, newHalfmoveClock, newFullmoves);
     }
+
+    public Vector2? EnPassantSquare()
+        => enPassantFile == -1 ? null : new(enPassantFile, whiteToMove ? 5 : 2); 
 
     public override bool Equals(object? obj)
         => obj is Position position && this == position;
@@ -132,11 +135,7 @@ public class Position
             a.halfmoveClock != b.halfmoveClock ||
             a.fullmoves != b.fullmoves)
             return false;
-        if (a.enPassantSquare is null && b.enPassantSquare is not null)
-            return false;
-        if (a.enPassantSquare is not null && b.enPassantSquare is null)
-            return false;
-        if (a.enPassantSquare is not null && b.enPassantSquare is not null && a.enPassantSquare != b.enPassantSquare)
+        if (a.enPassantFile != b.enPassantFile)
             return false;
         for (int rank = 0; rank < 8; rank++)
         {
@@ -188,7 +187,7 @@ public class Position
         // 2nd (3rd) field = castling availability
         output += CastlingRightsToString(castlingAvailability) + " ";
         // 3rd (4th) field = en passant target square
-        output += (enPassantSquare is null ? "-" : enPassantSquare.ToString()) + " ";
+        output += (enPassantFile == -1 ? "-" : EnPassantSquare().ToString()) + " ";
         // 4th (5th) field = halfmove clock used for the fifty move rule
         output += halfmoveClock.ToString() + " ";
         // 5th (6th) field = fullmove number
@@ -253,13 +252,13 @@ public class Position
             hash |= Zobrist.castlingRights[3];
     }
 
-    void SetEnPassantSquare(Vector2? newSquare)
+    void SetEnPassantFile(int newFile)
     {
-        if (enPassantSquare.HasValue)
-            hash ^= Zobrist.enPassantSquares[enPassantSquare.Value.rank == 2 ? 0 : 1, enPassantSquare.Value.file];
-        enPassantSquare = newSquare;
-        if (newSquare.HasValue)
-            hash ^= Zobrist.enPassantSquares[newSquare.Value.rank == 2 ? 0 : 1, newSquare.Value.file];
+        if (enPassantFile != -1)
+            hash ^= Zobrist.enPassantFiles[enPassantFile];
+        enPassantFile = newFile;
+        if (newFile != -1)
+            hash ^= Zobrist.enPassantFiles[newFile];
     }
 
     public void MakeMove(Move move, out UndoInfo undoInfo)
@@ -270,7 +269,7 @@ public class Position
             captured = GetPiece(move.from.rank, move.to.file);
         else
             captured = GetPiece(move.to);
-        Vector2? previousEnPassantSquare = enPassantSquare;
+        int previousEnPassantFile = enPassantFile;
         CastlingAvailability previousCastlingAvailability = castlingAvailability;
         // standard move
         var piece = GetPiece(move.from) ?? throw new Exception();
@@ -279,7 +278,7 @@ public class Position
         if (!whiteToMove)
             fullmoves++;
         FlipColorToMove();
-        SetEnPassantSquare(null);
+        SetEnPassantFile(-1);
         // set castling availability
         if (move.from == whiteKingsideCorner || move.to == whiteKingsideCorner)
             RemoveCastlingRight(CastlingAvailability.WhiteKingside);
@@ -320,7 +319,7 @@ public class Position
                 RemoveCastlingRight(piece.isWhite ? CastlingAvailability.WhiteQueenside : CastlingAvailability.BlackQueenside);
                 break;
             case Move.Flag.TwoSquarePawnPush:
-                SetEnPassantSquare(move.from + (piece.isWhite ? Vector2.up : Vector2.down));
+                SetEnPassantFile(move.from.file);
                 break;
             case Move.Flag.EnPassant:
                 SetPiece(move.to + (piece.isWhite ? Vector2.down : Vector2.up), null);
@@ -340,7 +339,7 @@ public class Position
             default:
                 throw new Exception();
         }
-        undoInfo = new(captured, previousEnPassantSquare, previousCastlingAvailability);
+        undoInfo = new(captured, previousEnPassantFile, previousCastlingAvailability);
     }
 
     public void UnmakeMove(Move move, UndoInfo undoInfo)
@@ -349,7 +348,7 @@ public class Position
         FlipColorToMove();
         if (!whiteToMove)
             fullmoves--;
-        SetEnPassantSquare(undoInfo.previousEnPassantSquare);
+        SetEnPassantFile(undoInfo.previousEnPassantFile);
         RestoreCastlingRight(undoInfo.previousCastlingAvailability);
         if (piece.type == Piece.Type.King && piece.isWhite)
             whiteKing = move.from;
@@ -586,7 +585,7 @@ public class Position
             // push 2 squares forward
             var twoStepsForward = oneStepForward + forward;
             if (pawn.rank == (pawnColor ? 1 : 6) && GetPiece(twoStepsForward) is null)
-                result.Add(new(pawn, twoStepsForward, Move.Flag.TwoSquarePawnPush)); // cannot land on the last rank (and promote)
+                result.Add(new(pawn, twoStepsForward, Move.Flag.TwoSquarePawnPush)); // cannot move two squares while landing on the last rank so we don't have to worry about that
         }
         // captures
         Vector2 leftCapture = oneStepForward + Vector2.left;
@@ -595,8 +594,12 @@ public class Position
             var leftCapturePiece = GetPiece(leftCapture);
             if (leftCapturePiece is not null && leftCapturePiece?.isWhite != pawnColor)
                 result.AddRange(MoveWithOrWithoutPromotions(pawn, leftCapture, isAboutToPromote));
-            else if (enPassantSquare is not null && enPassantSquare == leftCapture)
-                result.Add(new(pawn, leftCapture, Move.Flag.EnPassant)); // cannot capture en passant and land on the last rank
+            else
+            {
+                var enPassantSquare = EnPassantSquare();
+                if (enPassantSquare is not null && enPassantSquare == leftCapture)
+                    result.Add(new(pawn, leftCapture, Move.Flag.EnPassant)); // cannot capture en passant while landing on the last rank so we don't have to worry about that
+            }                
         }
         Vector2 rightCapture = oneStepForward + Vector2.right;
         if (rightCapture.file < 8) // is in bounds
@@ -604,14 +607,18 @@ public class Position
             var rightCapturePiece = GetPiece(rightCapture);
             if (rightCapturePiece is not null && rightCapturePiece?.isWhite != pawnColor)
                 result.AddRange(MoveWithOrWithoutPromotions(pawn, rightCapture, isAboutToPromote));
-            else if (enPassantSquare is not null && enPassantSquare == rightCapture)
-                result.Add(new(pawn, rightCapture, Move.Flag.EnPassant)); // cannot capture en passant and land on the last rank
+            else
+            {
+                var enPassantSquare = EnPassantSquare();
+                if (enPassantSquare is not null && enPassantSquare == rightCapture)
+                    result.Add(new(pawn, rightCapture, Move.Flag.EnPassant)); // cannot capture en passant while landing on the last rank so we don't have to worry about that
+            }                
         }
         //
         return result;
     }
 
-    Move[] MoveWithOrWithoutPromotions(Vector2 pawn, Vector2 destination, bool isAboutToPromote)
+    static Move[] MoveWithOrWithoutPromotions(Vector2 pawn, Vector2 destination, bool isAboutToPromote)
         => isAboutToPromote ? [
             new(pawn, destination, Move.Flag.PromotionToQueen),
                 new(pawn, destination, Move.Flag.PromotionToRook),
@@ -664,13 +671,13 @@ public class Position
 public readonly struct UndoInfo
 {
     public readonly Piece? captured;
-    public readonly Vector2? previousEnPassantSquare;
+    public readonly int previousEnPassantFile;
     public readonly Position.CastlingAvailability previousCastlingAvailability;
 
-    public UndoInfo(Piece? p_captured, Vector2? p_previousEnPassantSquare, Position.CastlingAvailability p_previousCastlingAvailability)
+    public UndoInfo(Piece? p_captured, int p_previousEnPassantFile, Position.CastlingAvailability p_previousCastlingAvailability)
     {
         captured = p_captured;
-        previousEnPassantSquare = p_previousEnPassantSquare;
+        previousEnPassantFile = p_previousEnPassantFile;
         previousCastlingAvailability = p_previousCastlingAvailability;
     }
 }

@@ -5,7 +5,7 @@ public class Zobrist
     static public long[,,] table = new long[8, 8, 12];
     static public long whiteToMove;
     static public long[] castlingRights = new long[4];
-    static public long[,] enPassantSquares = new long[2, 8];
+    static public long[] enPassantFiles = new long[8];
 
     public static void Initialize(int seed)
     {
@@ -21,11 +21,8 @@ public class Zobrist
         whiteToMove = r.NextInt64();
         for (int i = 0; i < 4; i++)
             castlingRights[i] = r.NextInt64();
-        for (int side = 0; side < 2; side++)
-        {
-            for (int file = 0; file < 8; file++)
-                enPassantSquares[side, file] = r.NextInt64();
-        }
+        for (int i = 0; i < 8; i++)
+            enPassantFiles[i] = r.NextInt64();
     }
 
     public static long GetHashFor(Position position)
@@ -49,11 +46,8 @@ public class Zobrist
             if (position.castlingAvailability.HasFlag(flag))
                 hash ^= castlingRights[i];
         }
-        if (position.enPassantSquare is not null)
-        {
-            var enPassantSquare = position.enPassantSquare.Value;
-            hash ^= enPassantSquares[enPassantSquare.rank == 2 ? 0 : 1, enPassantSquare.file];
-        }
+        if (position.enPassantFile != -1)
+            hash ^= enPassantFiles[position.enPassantFile];
         return hash;
     }
 
